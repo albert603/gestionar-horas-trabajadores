@@ -4,7 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, School, Calendar, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { formatDate } from "@/lib/data";
 import {
   Select,
@@ -16,8 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { employees, workEntries, schools, getSchoolById } = useApp();
   const activeEmployees = employees.filter(e => e.active).length;
   const totalHours = workEntries.reduce((sum, entry) => sum + entry.hours, 0);
@@ -76,6 +78,10 @@ const Dashboard = () => {
   const filteredEmployees = selectedEmployee 
     ? employeeSchoolsData.filter(e => e.id === selectedEmployee) 
     : employeeSchoolsData;
+
+  const handleSchoolClick = (schoolId: string) => {
+    navigate(`/schools?id=${schoolId}`);
+  };
 
   return (
     <MainLayout>
@@ -198,12 +204,13 @@ const Dashboard = () => {
                             <div className="flex flex-wrap gap-1">
                               {employee.schools && employee.schools.length > 0 ? (
                                 employee.schools.map((school: any) => (
-                                  <span 
+                                  <Badge 
                                     key={school.id} 
-                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                    className="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                    onClick={() => handleSchoolClick(school.id)}
                                   >
                                     {school.name}
-                                  </span>
+                                  </Badge>
                                 ))
                               ) : (
                                 <span className="text-gray-500 text-sm">Sin colegios</span>

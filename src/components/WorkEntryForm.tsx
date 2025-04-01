@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 
 const schoolEntrySchema = z.object({
   schoolId: z.string({
@@ -62,6 +63,7 @@ type WorkEntryFormProps = {
 
 export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: WorkEntryFormProps) {
   const [isMultipleSchools, setIsMultipleSchools] = useState(false);
+  const [useAutomaticCalculation, setUseAutomaticCalculation] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,6 +84,48 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
     control: form.control,
     name: "schoolEntries"
   });
+
+  // Function to calculate hours from start and end time
+  const calculateHours = (startTime: string, endTime: string): number => {
+    if (!startTime || !endTime) return 0;
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    let hours = endHour - startHour;
+    let minutes = endMinute - startMinute;
+
+    if (minutes < 0) {
+      hours -= 1;
+      minutes += 60;
+    }
+
+    // Convert to decimal hours (rounded to nearest 0.5)
+    const totalHours = hours + (minutes / 60);
+    return Math.round(totalHours * 2) / 2; // Round to nearest 0.5
+  };
+
+  // Update hours when start or end time changes
+  useEffect(() => {
+    if (useAutomaticCalculation) {
+      const subscription = form.watch((value, { name }) => {
+        if (!value.schoolEntries) return;
+
+        value.schoolEntries.forEach((entry, index) => {
+          if ((name?.includes(`schoolEntries.${index}.startTime`) || 
+               name?.includes(`schoolEntries.${index}.endTime`)) &&
+              entry.startTime && entry.endTime) {
+            const calculatedHours = calculateHours(entry.startTime, entry.endTime);
+            if (calculatedHours > 0) {
+              form.setValue(`schoolEntries.${index}.hours`, calculatedHours);
+            }
+          }
+        });
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, [form, useAutomaticCalculation]);
 
   const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
     if (data.schoolEntries.length === 1 && !isMultipleSchools) {
@@ -157,6 +201,20 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
           )}
         />
 
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="auto-calculate" 
+            checked={useAutomaticCalculation} 
+            onCheckedChange={setUseAutomaticCalculation} 
+          />
+          <label
+            htmlFor="auto-calculate"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Calcular horas automáticamente
+          </label>
+        </div>
+
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-medium">Colegios y Horas</h3>
@@ -222,7 +280,14 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
                     <FormItem>
                       <FormLabel>Horas trabajadas</FormLabel>
                       <FormControl>
-                        <Input type="number" min={0.5} max={24} step={0.5} {...field} />
+                        <Input 
+                          type="number" 
+                          min={0.5} 
+                          max={24} 
+                          step={0.5} 
+                          {...field}
+                          disabled={useAutomaticCalculation && !!form.getValues(`schoolEntries.${index}.startTime`) && !!form.getValues(`schoolEntries.${index}.endTime`)} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

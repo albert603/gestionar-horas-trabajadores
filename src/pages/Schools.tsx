@@ -13,7 +13,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Pencil, Trash2, BarChart3, Users, CalendarRange } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, BarChart3, Users, CalendarRange, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,12 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const Schools = () => {
   const { 
@@ -52,7 +58,8 @@ const Schools = () => {
     updateSchool, 
     deleteSchool, 
     getTotalHoursBySchoolThisMonth,
-    getEmployeeById
+    getEmployeeById,
+    getEmployeesBySchool
   } = useApp();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -62,6 +69,7 @@ const Schools = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().getMonth() + "-" + new Date().getFullYear()
   );
+  const [expandedSchools, setExpandedSchools] = useState<Record<string, boolean>>({});
 
   // Calculate total hours per school for this month
   const schoolHours = schools.map(school => {
@@ -70,11 +78,7 @@ const Schools = () => {
     const monthlyHours = getTotalHoursBySchoolThisMonth(school.id);
     
     // Get employees working at this school
-    const schoolEmployeeIds = [...new Set(
-      entries.map(entry => entry.employeeId)
-    )];
-    
-    const schoolEmployees = schoolEmployeeIds.map(id => getEmployeeById(id)).filter(Boolean);
+    const schoolEmployees = getEmployeesBySchool(school.id);
     
     return {
       ...school,
@@ -119,6 +123,13 @@ const Schools = () => {
   const openDeleteDialog = (school: any) => {
     setCurrentSchool(school);
     setIsDeleteDialogOpen(true);
+  };
+
+  const toggleSchoolExpand = (schoolId: string) => {
+    setExpandedSchools(prev => ({
+      ...prev,
+      [schoolId]: !prev[schoolId]
+    }));
   };
 
   // Generate months for report selection
@@ -220,35 +231,79 @@ const Schools = () => {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Total de Horas</TableHead>
-                  <TableHead>Cantidad de Registros</TableHead>
+                  <TableHead>Profesores</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {schoolHours.map((school) => (
-                  <TableRow key={school.id}>
-                    <TableCell className="font-medium">{school.name}</TableCell>
-                    <TableCell>{school.totalHours} horas</TableCell>
-                    <TableCell>{school.entries} registros</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(school)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDeleteDialog(school)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <React.Fragment key={school.id}>
+                    <TableRow>
+                      <TableCell className="font-medium">{school.name}</TableCell>
+                      <TableCell>{school.totalHours} horas</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{school.employees?.length || 0} profesores</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => toggleSchoolExpand(school.id)}
+                            className="h-7 w-7 p-0"
+                          >
+                            {expandedSchools[school.id] ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(school)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openDeleteDialog(school)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {expandedSchools[school.id] && (
+                      <TableRow className="bg-gray-50">
+                        <TableCell colSpan={4} className="py-3">
+                          {school.employees && school.employees.length > 0 ? (
+                            <div className="pl-6 space-y-2">
+                              <h4 className="font-medium text-sm">Profesores asignados:</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {school.employees.map((employee: any) => (
+                                  <div 
+                                    key={employee.id} 
+                                    className="flex items-center gap-2 p-2 bg-white border rounded-md"
+                                  >
+                                    <div>
+                                      <p className="font-medium">{employee.name}</p>
+                                      <p className="text-xs text-gray-500">{employee.position}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-center text-gray-500">No hay profesores asignados a este colegio</p>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
