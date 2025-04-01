@@ -1,30 +1,40 @@
-
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Employee, School, WorkEntry } from "../types";
-import { generateId, initialEmployees, initialWorkEntries, schools } from "../lib/data";
+import { Employee, School, WorkEntry, EditRecord } from "../types";
+import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
 import { useToast } from "@/components/ui/use-toast";
+import { format } from "date-fns";
 
 interface AppContextType {
   employees: Employee[];
   schools: School[];
   workEntries: WorkEntry[];
+  editRecords: EditRecord[];
   addEmployee: (employee: Omit<Employee, "id">) => void;
   updateEmployee: (employee: Employee) => void;
   deleteEmployee: (id: string) => void;
+  addSchool: (school: Omit<School, "id">) => void;
+  updateSchool: (school: School) => void;
+  deleteSchool: (id: string) => void;
   addWorkEntry: (entry: Omit<WorkEntry, "id">) => void;
-  updateWorkEntry: (entry: WorkEntry) => void;
+  updateWorkEntry: (entry: WorkEntry, editorName: string) => void;
   deleteWorkEntry: (id: string) => void;
   getEmployeeById: (id: string) => Employee | undefined;
   getSchoolById: (id: string) => School | undefined;
   getWorkEntriesByEmployeeAndDate: (employeeId: string, date: string) => WorkEntry[];
   getTotalHoursByEmployeeThisWeek: (employeeId: string) => number;
+  getTotalHoursByEmployeeThisMonth: (employeeId: string) => number;
+  getTotalHoursByEmployeeThisYear: (employeeId: string) => number;
+  getTotalHoursBySchoolThisMonth: (schoolId: string) => number;
+  getEditRecordsByWorkEntry: (workEntryId: string) => EditRecord[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [schools, setSchools] = useState<School[]>(initialSchools);
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>(initialWorkEntries);
+  const [editRecords, setEditRecords] = useState<EditRecord[]>([]);
   const { toast } = useToast();
 
   const addEmployee = (employee: Omit<Employee, "id">) => {
@@ -57,8 +67,53 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  const addSchool = (school: Omit<School, "id">) => {
+    const newSchool = { ...school, id: generateId() };
+    setSchools([...schools, newSchool]);
+    toast({
+      title: "Colegio agregado",
+      description: `${newSchool.name} ha sido agregado correctamente.`
+    });
+  };
+
+  const updateSchool = (school: School) => {
+    setSchools(schools.map(s => (s.id === school.id ? school : s)));
+    toast({
+      title: "Colegio actualizado",
+      description: `${school.name} ha sido actualizado correctamente.`
+    });
+  };
+
+  const deleteSchool = (id: string) => {
+    const school = schools.find(s => s.id === id);
+    
+    // Check if the school is being used in any work entry
+    const isSchoolInUse = workEntries.some(entry => entry.schoolId === id);
+    
+    if (isSchoolInUse) {
+      toast({
+        title: "Error al eliminar",
+        description: "Este colegio no puede ser eliminado porque tiene registros de horas asociados.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSchools(schools.filter(s => s.id !== id));
+    toast({
+      title: "Colegio eliminado",
+      description: school ? `${school.name} ha sido eliminado correctamente.` : "Colegio eliminado correctamente"
+    });
+  };
+
   const addWorkEntry = (entry: Omit<WorkEntry, "id">) => {
-    const newEntry = { ...entry, id: generateId() };
+    const now = new Date();
+    const newEntry = { 
+      ...entry, 
+      id: generateId(),
+      lastEditedBy: "Usuario",
+      lastEditedAt: now.toISOString()
+    };
     setWorkEntries([...workEntries, newEntry]);
     toast({
       title: "Horas registradas",
@@ -66,8 +121,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  const updateWorkEntry = (entry: WorkEntry) => {
-    setWorkEntries(workEntries.map(e => (e.id === entry.id ? entry : e)));
+  const updateWorkEntry = (entry: WorkEntry, editorName: string) => {
+    // Find the original entry to compare
+    const originalEntry = workEntries.find(e => e.id === entry.id);
+    
+    if (originalEntry && originalEntry.hours !== entry.hours) {
+      // Create an edit record
+      const now = new Date();
+      const editRecord: EditRecord = {
+        id: generateId(),
+        workEntryId: entry.id,
+        editedBy: editorName,
+        editedAt: now.toISOString(),
+        previousHours: originalEntry.hours,
+        newHours: entry.hours
+      };
+      
+      setEditRecords([...editRecords, editRecord]);
+      
+      // Update the entry with edit information
+      const updatedEntry = {
+        ...entry,
+        lastEditedBy: editorName,
+        lastEditedAt: now.toISOString()
+      };
+      
+      setWorkEntries(workEntries.map(e => (e.id === entry.id ? updatedEntry : e)));
+    } else {
+      // If hours didn't change, just update other fields
+      setWorkEntries(workEntries.map(e => (e.id === entry.id ? entry : e)));
+    }
+    
     toast({
       title: "Registro actualizado",
       description: "Las horas de trabajo se han actualizado correctamente."
@@ -116,13 +200,73 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .reduce((total, entry) => total + entry.hours, 0);
   };
 
+  // New functions for reports
+  const getTotalHoursByEmployeeThisMonth = (employeeId: string) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    return workEntries
+      .filter(entry => {
+        const entryDate = new Date(entry.date);
+        return (
+          entry.employeeId === employeeId &&
+          entryDate >= startOfMonth &&
+          entryDate <= endOfMonth
+        );
+      })
+      .reduce((total, entry) => total + entry.hours, 0);
+  };
+  
+  const getTotalHoursByEmployeeThisYear = (employeeId: string) => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const endOfYear = new Date(now.getFullYear(), 11, 31);
+    
+    return workEntries
+      .filter(entry => {
+        const entryDate = new Date(entry.date);
+        return (
+          entry.employeeId === employeeId &&
+          entryDate >= startOfYear &&
+          entryDate <= endOfYear
+        );
+      })
+      .reduce((total, entry) => total + entry.hours, 0);
+  };
+  
+  const getTotalHoursBySchoolThisMonth = (schoolId: string) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    return workEntries
+      .filter(entry => {
+        const entryDate = new Date(entry.date);
+        return (
+          entry.schoolId === schoolId &&
+          entryDate >= startOfMonth &&
+          entryDate <= endOfMonth
+        );
+      })
+      .reduce((total, entry) => total + entry.hours, 0);
+  };
+  
+  const getEditRecordsByWorkEntry = (workEntryId: string) => {
+    return editRecords.filter(record => record.workEntryId === workEntryId);
+  };
+
   const contextValue: AppContextType = {
     employees,
     schools,
     workEntries,
+    editRecords,
     addEmployee,
     updateEmployee,
     deleteEmployee,
+    addSchool,
+    updateSchool,
+    deleteSchool,
     addWorkEntry,
     updateWorkEntry,
     deleteWorkEntry,
@@ -130,6 +274,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getSchoolById,
     getWorkEntriesByEmployeeAndDate,
     getTotalHoursByEmployeeThisWeek,
+    getTotalHoursByEmployeeThisMonth,
+    getTotalHoursByEmployeeThisYear,
+    getTotalHoursBySchoolThisMonth,
+    getEditRecordsByWorkEntry,
   };
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;

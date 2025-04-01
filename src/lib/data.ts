@@ -1,8 +1,7 @@
-
 import { Employee, School, WorkEntry } from "../types";
 
 // Mock data
-export const schools: School[] = [
+export const initialSchools: School[] = [
   { id: "1", name: "Colegio San José" },
   { id: "2", name: "Escuela Primaria Libertad" },
   { id: "3", name: "Instituto Nacional" },
@@ -44,6 +43,8 @@ export const initialWorkEntries: WorkEntry[] = [
     schoolId: "1",
     date: "2023-09-25",
     hours: 8,
+    lastEditedBy: "Sistema",
+    lastEditedAt: "2023-09-25T12:00:00Z"
   },
   {
     id: "2",
@@ -51,6 +52,8 @@ export const initialWorkEntries: WorkEntry[] = [
     schoolId: "2",
     date: "2023-09-26",
     hours: 6,
+    lastEditedBy: "Sistema",
+    lastEditedAt: "2023-09-26T12:00:00Z"
   },
   {
     id: "3",
@@ -58,6 +61,8 @@ export const initialWorkEntries: WorkEntry[] = [
     schoolId: "1",
     date: "2023-09-25",
     hours: 7,
+    lastEditedBy: "Sistema",
+    lastEditedAt: "2023-09-25T12:00:00Z"
   },
 ];
 
