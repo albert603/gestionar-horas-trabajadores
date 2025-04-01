@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { School, WorkEntry } from "@/types";
-import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -41,6 +41,8 @@ const schoolEntrySchema = z.object({
     .number()
     .min(0.5, { message: "Mínimo 0.5 horas." })
     .max(24, { message: "Máximo 24 horas." }),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -66,8 +68,13 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
     defaultValues: {
       date: initialData?.date ? new Date(initialData.date) : new Date(),
       schoolEntries: initialData?.schoolId
-        ? [{ schoolId: initialData.schoolId, hours: initialData.hours || 8 }]
-        : [{ schoolId: "", hours: 8 }]
+        ? [{ 
+            schoolId: initialData.schoolId, 
+            hours: initialData.hours || 8,
+            startTime: initialData.startTime || "",
+            endTime: initialData.endTime || "" 
+          }]
+        : [{ schoolId: "", hours: 8, startTime: "", endTime: "" }]
     },
   });
 
@@ -82,7 +89,9 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
       onSubmit({
         schoolId: data.schoolEntries[0].schoolId,
         date: data.date,
-        hours: data.schoolEntries[0].hours
+        hours: data.schoolEntries[0].hours,
+        startTime: data.schoolEntries[0].startTime,
+        endTime: data.schoolEntries[0].endTime
       });
     } else {
       // Para múltiples entradas, pasar un array para que el componente padre lo maneje
@@ -94,7 +103,7 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
   };
 
   const addSchoolEntry = () => {
-    append({ schoolId: "", hours: 4 });
+    append({ schoolId: "", hours: 4, startTime: "", endTime: "" });
     setIsMultipleSchools(true);
   };
 
@@ -215,6 +224,52 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
                       <FormControl>
                         <Input type="number" min={0.5} max={24} step={0.5} {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name={`schoolEntries.${index}.startTime`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hora de inicio</FormLabel>
+                      <div className="relative">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            className="pl-8" 
+                            {...field} 
+                            placeholder="Hora de inicio" 
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name={`schoolEntries.${index}.endTime`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hora de finalización</FormLabel>
+                      <div className="relative">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            className="pl-8" 
+                            {...field} 
+                            placeholder="Hora de finalización" 
+                          />
+                        </FormControl>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}

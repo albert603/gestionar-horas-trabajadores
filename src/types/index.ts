@@ -6,6 +6,7 @@ export interface Employee {
   phone: string;
   email: string;
   active: boolean;
+  assignedSchools?: string[]; // IDs de colegios asignados
 }
 
 export interface School {
@@ -19,8 +20,10 @@ export interface WorkEntry {
   schoolId: string;
   date: string;
   hours: number;
-  lastEditedBy?: string; // Añadimos quién editó por última vez
-  lastEditedAt?: string; // Añadimos cuándo se editó por última vez
+  startTime?: string; // Hora de inicio (formato HH:MM)
+  endTime?: string; // Hora de finalización (formato HH:MM)
+  lastEditedBy?: string;
+  lastEditedAt?: string;
 }
 
 export interface EditRecord {

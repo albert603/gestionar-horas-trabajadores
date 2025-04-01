@@ -13,7 +13,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Pencil, Trash2, BarChart3 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, BarChart3, Users, CalendarRange } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,13 +33,35 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SchoolForm } from "@/components/SchoolForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 const Schools = () => {
-  const { schools, workEntries, addSchool, updateSchool, deleteSchool, getTotalHoursBySchoolThisMonth } = useApp();
+  const { 
+    schools, 
+    employees,
+    workEntries, 
+    addSchool, 
+    updateSchool, 
+    deleteSchool, 
+    getTotalHoursBySchoolThisMonth,
+    getEmployeeById
+  } = useApp();
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentSchool, setCurrentSchool] = useState<any>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().getMonth() + "-" + new Date().getFullYear()
+  );
 
   // Calculate total hours per school for this month
   const schoolHours = schools.map(school => {
@@ -47,11 +69,19 @@ const Schools = () => {
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
     const monthlyHours = getTotalHoursBySchoolThisMonth(school.id);
     
+    // Get employees working at this school
+    const schoolEmployeeIds = [...new Set(
+      entries.map(entry => entry.employeeId)
+    )];
+    
+    const schoolEmployees = schoolEmployeeIds.map(id => getEmployeeById(id)).filter(Boolean);
+    
     return {
       ...school,
       totalHours,
       monthlyHours,
-      entries: entries.length
+      entries: entries.length,
+      employees: schoolEmployees
     };
   });
 
@@ -91,6 +121,78 @@ const Schools = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  // Generate months for report selection
+  const generateMonthOptions = () => {
+    const options = [];
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    
+    // Generate options for last 12 months
+    for (let i = 0; i < 12; i++) {
+      const date = new Date();
+      date.setMonth(currentDate.getMonth() - i);
+      
+      const month = date.getMonth();
+      const year = date.getFullYear();
+      const value = `${month}-${year}`;
+      
+      // Format as "Septiembre 2023"
+      const formattedDate = format(date, "MMMM yyyy", { locale: es });
+      options.push({ value, label: formattedDate });
+    }
+    
+    return options;
+  };
+  
+  // Filter work entries for monthly report
+  const getMonthlyReportData = () => {
+    if (!selectedMonth) return [];
+    
+    const [monthStr, yearStr] = selectedMonth.split("-");
+    const month = parseInt(monthStr);
+    const year = parseInt(yearStr);
+    
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0); // Last day of month
+    
+    const filteredEntries = workEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return (
+        entryDate >= startDate && 
+        entryDate <= endDate
+      );
+    });
+    
+    // Group by schoolId and then by employeeId
+    const schoolReport: Record<string, any> = {};
+    
+    filteredEntries.forEach(entry => {
+      if (!schoolReport[entry.schoolId]) {
+        const school = schools.find(s => s.id === entry.schoolId);
+        schoolReport[entry.schoolId] = {
+          schoolName: school ? school.name : "Desconocido",
+          employees: {},
+          totalHours: 0
+        };
+      }
+      
+      if (!schoolReport[entry.schoolId].employees[entry.employeeId]) {
+        const employee = getEmployeeById(entry.employeeId);
+        schoolReport[entry.schoolId].employees[entry.employeeId] = {
+          employeeName: employee ? employee.name : "Desconocido",
+          hours: 0
+        };
+      }
+      
+      schoolReport[entry.schoolId].employees[entry.employeeId].hours += entry.hours;
+      schoolReport[entry.schoolId].totalHours += entry.hours;
+    });
+    
+    return Object.values(schoolReport);
+  };
+
+  const monthlyReportData = getMonthlyReportData();
+
   return (
     <MainLayout>
       <div className="flex justify-between items-center mb-6">
@@ -107,7 +209,8 @@ const Schools = () => {
       <Tabs defaultValue="list">
         <TabsList className="mb-4">
           <TabsTrigger value="list">Lista de Colegios</TabsTrigger>
-          <TabsTrigger value="reports">Reportes Mensuales</TabsTrigger>
+          <TabsTrigger value="teachers">Profesores por Colegio</TabsTrigger>
+          <TabsTrigger value="reports">Informes Mensuales</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
@@ -152,31 +255,107 @@ const Schools = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="reports">
+        <TabsContent value="teachers">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {schoolHours.map((school) => (
               <Card key={school.id} className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-bold">{school.name}</h3>
                   <div className="bg-blue-100 text-blue-800 p-1 rounded flex items-center">
-                    <BarChart3 className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Mes actual</span>
+                    <Users className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{school.employees?.length || 0} profesores</span>
                   </div>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600 mb-4">
-                  <span>Registros totales</span>
-                  <span>{school.entries}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600 mb-4">
-                  <span>Horas totales</span>
-                  <span>{school.totalHours} horas</span>
-                </div>
-                <div className="flex justify-between font-medium text-lg pt-3 border-t">
+                
+                {school.employees && school.employees.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    <h4 className="text-sm font-medium text-gray-500">Profesores asignados:</h4>
+                    {school.employees.map((employee: any) => (
+                      <div key={employee.id} className="flex justify-between items-center border-b pb-2 last:border-0">
+                        <span>{employee.name}</span>
+                        <span className="text-sm text-gray-500">{employee.position}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-4 text-center text-gray-500">
+                    No hay profesores asignados a este colegio
+                  </div>
+                )}
+                
+                <div className="flex justify-between font-medium text-lg pt-3 mt-2 border-t">
                   <span>Horas este mes</span>
                   <span className="text-blue-700">{school.monthlyHours} horas</span>
                 </div>
               </Card>
             ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <div className="mb-6">
+            <div className="flex flex-col md:flex-row gap-4 mb-4 items-end">
+              <div className="w-full md:w-1/3">
+                <label htmlFor="month-select" className="block text-sm font-medium text-gray-700 mb-1">
+                  Seleccionar Mes
+                </label>
+                <Select
+                  value={selectedMonth}
+                  onValueChange={setSelectedMonth}
+                >
+                  <SelectTrigger id="month-select">
+                    <SelectValue placeholder="Seleccionar mes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateMonthOptions().map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-md border">
+              <div className="p-4 border-b">
+                <h3 className="font-medium flex items-center">
+                  <CalendarRange className="h-5 w-5 mr-2" />
+                  Informe Mensual de Colegios
+                </h3>
+              </div>
+              
+              {monthlyReportData.length > 0 ? (
+                <div className="divide-y">
+                  {monthlyReportData.map((schoolData: any, index) => (
+                    <div key={index} className="p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium">{schoolData.schoolName}</h4>
+                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm">
+                          {schoolData.totalHours} horas
+                        </span>
+                      </div>
+                      
+                      <div className="ml-4 mt-2">
+                        <h5 className="text-sm text-gray-500 mb-2">Profesores:</h5>
+                        <div className="space-y-2">
+                          {Object.values(schoolData.employees).map((employeeData: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-sm">
+                              <span>{employeeData.employeeName}</span>
+                              <span>{employeeData.hours} horas</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  No hay datos disponibles para el mes seleccionado
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>

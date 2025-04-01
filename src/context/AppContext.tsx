@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Employee, School, WorkEntry, EditRecord } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
@@ -26,6 +27,8 @@ interface AppContextType {
   getTotalHoursByEmployeeThisYear: (employeeId: string) => number;
   getTotalHoursBySchoolThisMonth: (schoolId: string) => number;
   getEditRecordsByWorkEntry: (workEntryId: string) => EditRecord[];
+  getSchoolsByEmployee: (employeeId: string) => School[];
+  getEmployeesBySchool: (schoolId: string) => Employee[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -149,7 +152,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setWorkEntries(workEntries.map(e => (e.id === entry.id ? updatedEntry : e)));
     } else {
       // If hours didn't change, just update other fields
-      setWorkEntries(workEntries.map(e => (e.id === entry.id ? entry : e)));
+      const updatedEntry = {
+        ...entry,
+        lastEditedBy: editorName,
+        lastEditedAt: new Date().toISOString()
+      };
+      setWorkEntries(workEntries.map(e => (e.id === entry.id ? updatedEntry : e)));
     }
     
     toast({
@@ -256,6 +264,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return editRecords.filter(record => record.workEntryId === workEntryId);
   };
 
+  // Get all schools an employee has worked at
+  const getSchoolsByEmployee = (employeeId: string) => {
+    const schoolIds = [...new Set(
+      workEntries
+        .filter(entry => entry.employeeId === employeeId)
+        .map(entry => entry.schoolId)
+    )];
+    
+    return schools.filter(school => schoolIds.includes(school.id));
+  };
+
+  // Get all employees who have worked at a school
+  const getEmployeesBySchool = (schoolId: string) => {
+    const employeeIds = [...new Set(
+      workEntries
+        .filter(entry => entry.schoolId === schoolId)
+        .map(entry => entry.employeeId)
+    )];
+    
+    return employees.filter(employee => employeeIds.includes(employee.id));
+  };
+
   const contextValue: AppContextType = {
     employees,
     schools,
@@ -278,6 +308,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getTotalHoursByEmployeeThisYear,
     getTotalHoursBySchoolThisMonth,
     getEditRecordsByWorkEntry,
+    getSchoolsByEmployee,
+    getEmployeesBySchool
   };
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
