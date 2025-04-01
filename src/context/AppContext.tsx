@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Employee, School, WorkEntry, EditRecord } from "../types";
+import { Employee, School, WorkEntry, EditRecord, Position } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
@@ -10,6 +9,7 @@ interface AppContextType {
   schools: School[];
   workEntries: WorkEntry[];
   editRecords: EditRecord[];
+  positions: Position[];
   addEmployee: (employee: Omit<Employee, "id">) => void;
   updateEmployee: (employee: Employee) => void;
   deleteEmployee: (id: string) => void;
@@ -19,6 +19,9 @@ interface AppContextType {
   addWorkEntry: (entry: Omit<WorkEntry, "id">) => void;
   updateWorkEntry: (entry: WorkEntry, editorName: string) => void;
   deleteWorkEntry: (id: string) => void;
+  addPosition: (position: Omit<Position, "id">) => void;
+  updatePosition: (position: Position) => void;
+  deletePosition: (id: string) => void;
   getEmployeeById: (id: string) => Employee | undefined;
   getSchoolById: (id: string) => School | undefined;
   getWorkEntriesByEmployeeAndDate: (employeeId: string, date: string) => WorkEntry[];
@@ -26,9 +29,15 @@ interface AppContextType {
   getTotalHoursByEmployeeThisMonth: (employeeId: string) => number;
   getTotalHoursByEmployeeThisYear: (employeeId: string) => number;
   getTotalHoursBySchoolThisMonth: (schoolId: string) => number;
+  getTotalHoursByEmployeeAndSchoolThisMonth: (employeeId: string, schoolId: string) => number;
   getEditRecordsByWorkEntry: (workEntryId: string) => EditRecord[];
   getSchoolsByEmployee: (employeeId: string) => School[];
   getEmployeesBySchool: (schoolId: string) => Employee[];
+  getTotalHoursForEmployeeByDay: (employeeId: string, date: string) => number;
+  getTotalHoursBySchoolAndMonth: (schoolId: string, month: number, year: number) => {
+    employee: Employee;
+    hours: number;
+  }[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,6 +47,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [schools, setSchools] = useState<School[]>(initialSchools);
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>(initialWorkEntries);
   const [editRecords, setEditRecords] = useState<EditRecord[]>([]);
+  const [positions, setPositions] = useState<Position[]>([
+    { id: "pos-1", name: "Profesor" },
+    { id: "pos-2", name: "Administrativo" },
+    { id: "pos-3", name: "Auxiliar" }
+  ]);
   const { toast } = useToast();
 
   const addEmployee = (employee: Omit<Employee, "id">) => {
@@ -174,6 +188,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  const addPosition = (position: Omit<Position, "id">) => {
+    const newPosition = { ...position, id: generateId() };
+    setPositions([...positions, newPosition]);
+    toast({
+      title: "Cargo agregado",
+      description: `${newPosition.name} ha sido agregado correctamente.`
+    });
+  };
+
+  const updatePosition = (position: Position) => {
+    setPositions(positions.map(p => (p.id === position.id ? position : p)));
+    toast({
+      title: "Cargo actualizado",
+      description: `${position.name} ha sido actualizado correctamente.`
+    });
+  };
+
+  const deletePosition = (id: string) => {
+    // Check if the position is being used by any employee
+    const isPositionInUse = employees.some(e => e.position === positions.find(p => p.id === id)?.name);
+    
+    if (isPositionInUse) {
+      toast({
+        title: "Error al eliminar",
+        description: "Este cargo no puede ser eliminado porque está siendo utilizado por empleados.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const position = positions.find(p => p.id === id);
+    setPositions(positions.filter(p => p.id !== id));
+    
+    toast({
+      title: "Cargo eliminado",
+      description: position ? `${position.name} ha sido eliminado correctamente.` : "Cargo eliminado correctamente"
+    });
+  };
+
   const getEmployeeById = (id: string) => {
     return employees.find(e => e.id === id);
   };
@@ -208,7 +261,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .reduce((total, entry) => total + entry.hours, 0);
   };
 
-  // New functions for reports
   const getTotalHoursByEmployeeThisMonth = (employeeId: string) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -260,11 +312,68 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .reduce((total, entry) => total + entry.hours, 0);
   };
   
+  const getTotalHoursForEmployeeByDay = (employeeId: string, date: string) => {
+    return workEntries
+      .filter(entry => entry.employeeId === employeeId && entry.date === date)
+      .reduce((total, entry) => total + entry.hours, 0);
+  };
+
+  const getTotalHoursByEmployeeAndSchoolThisMonth = (employeeId: string, schoolId: string) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    return workEntries
+      .filter(entry => {
+        const entryDate = new Date(entry.date);
+        return (
+          entry.employeeId === employeeId &&
+          entry.schoolId === schoolId &&
+          entryDate >= startOfMonth &&
+          entryDate <= endOfMonth
+        );
+      })
+      .reduce((total, entry) => total + entry.hours, 0);
+  };
+
+  const getTotalHoursBySchoolAndMonth = (schoolId: string, month: number, year: number) => {
+    const startOfMonth = new Date(year, month, 1);
+    const endOfMonth = new Date(year, month + 1, 0);
+    
+    // Get all entries for this school in the specified month
+    const schoolEntries = workEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return (
+        entry.schoolId === schoolId &&
+        entryDate >= startOfMonth &&
+        entryDate <= endOfMonth
+      );
+    });
+    
+    // Group by employee and sum hours
+    const employeeHoursMap = new Map<string, number>();
+    
+    schoolEntries.forEach(entry => {
+      const currentHours = employeeHoursMap.get(entry.employeeId) || 0;
+      employeeHoursMap.set(entry.employeeId, currentHours + entry.hours);
+    });
+    
+    // Convert to array of employee objects with hours
+    const result = Array.from(employeeHoursMap.entries()).map(([employeeId, hours]) => {
+      const employee = employees.find(e => e.id === employeeId);
+      return {
+        employee: employee!,
+        hours
+      };
+    }).filter(item => item.employee); // Filter out any undefined employees
+    
+    return result;
+  };
+
   const getEditRecordsByWorkEntry = (workEntryId: string) => {
     return editRecords.filter(record => record.workEntryId === workEntryId);
   };
 
-  // Get all schools an employee has worked at
   const getSchoolsByEmployee = (employeeId: string) => {
     const schoolIds = [...new Set(
       workEntries
@@ -275,7 +384,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return schools.filter(school => schoolIds.includes(school.id));
   };
 
-  // Get all employees who have worked at a school
   const getEmployeesBySchool = (schoolId: string) => {
     const employeeIds = [...new Set(
       workEntries
@@ -291,6 +399,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     schools,
     workEntries,
     editRecords,
+    positions,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -300,6 +409,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addWorkEntry,
     updateWorkEntry,
     deleteWorkEntry,
+    addPosition,
+    updatePosition,
+    deletePosition,
     getEmployeeById,
     getSchoolById,
     getWorkEntriesByEmployeeAndDate,
@@ -307,9 +419,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getTotalHoursByEmployeeThisMonth,
     getTotalHoursByEmployeeThisYear,
     getTotalHoursBySchoolThisMonth,
+    getTotalHoursByEmployeeAndSchoolThisMonth,
     getEditRecordsByWorkEntry,
     getSchoolsByEmployee,
-    getEmployeesBySchool
+    getEmployeesBySchool,
+    getTotalHoursForEmployeeByDay,
+    getTotalHoursBySchoolAndMonth
   };
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;

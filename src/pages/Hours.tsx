@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { WorkEntryForm } from "@/components/WorkEntryForm";
 import { formatDate } from "@/lib/data";
-import { PlusCircle, CalendarPlus, Pencil, Trash2, History, Clock } from "lucide-react";
+import { PlusCircle, CalendarPlus, Pencil, Trash2, History, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -32,8 +32,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCurrentWeekDates, getDayOfWeek } from "@/lib/data";
-import { format } from "date-fns";
-import { EditRecord } from "@/types";
+import { format, addDays, addWeeks, subWeeks } from "date-fns";
+import { EditRecord, School } from "@/types";
 
 const Hours = () => {
   const { 
@@ -48,7 +48,8 @@ const Hours = () => {
     getSchoolById,
     getTotalHoursByEmployeeThisMonth,
     getTotalHoursByEmployeeThisYear,
-    getEditRecordsByWorkEntry
+    getEditRecordsByWorkEntry,
+    getTotalHoursForEmployeeByDay
   } = useApp();
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
@@ -58,7 +59,47 @@ const Hours = () => {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<any>(null);
   const [editorName, setEditorName] = useState<string>("Usuario");
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date());
+  const [weekOffset, setWeekOffset] = useState(0);
   
+  // Calculate hours by school for selected employee
+  const hoursBySchool = React.useMemo(() => {
+    if (!selectedEmployeeId) return [];
+    
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Get all entries for this employee in this month
+    const employeeEntries = workEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return (
+        entry.employeeId === selectedEmployeeId &&
+        entryDate >= startOfMonth &&
+        entryDate <= endOfMonth
+      );
+    });
+    
+    // Group by school and sum hours
+    const schoolHoursMap = new Map<string, number>();
+    
+    employeeEntries.forEach(entry => {
+      const currentHours = schoolHoursMap.get(entry.schoolId) || 0;
+      schoolHoursMap.set(entry.schoolId, currentHours + entry.hours);
+    });
+    
+    // Convert to array of objects with school details
+    return Array.from(schoolHoursMap.entries()).map(([schoolId, hours]) => {
+      const school = getSchoolById(schoolId);
+      return {
+        schoolId,
+        schoolName: school?.name || "Desconocido",
+        hours
+      };
+    }).sort((a, b) => b.hours - a.hours);
+  }, [selectedEmployeeId, workEntries, getSchoolById]);
+  
+  // Filter entries by selected employee
   const filteredEntries = selectedEmployeeId
     ? workEntries.filter(entry => entry.employeeId === selectedEmployeeId)
     : workEntries;
@@ -68,33 +109,94 @@ const Hours = () => {
   );
 
   // For weekly view
-  const weekDates = getCurrentWeekDates();
+  const weekDates = React.useMemo(() => {
+    // Adjust current week based on offset
+    const baseDate = addWeeks(currentWeekStart, weekOffset);
+    const dayOfWeek = baseDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+    const diff = baseDate.getDate() - dayOfWeek;
+    const startOfWeek = new Date(baseDate);
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Generate dates for the entire week
+    return Array.from({ length: 7 }).map((_, i) => {
+      const date = addDays(startOfWeek, i);
+      return format(date, 'yyyy-MM-dd');
+    });
+  }, [currentWeekStart, weekOffset]);
+  
+  const handleNextWeek = () => {
+    setWeekOffset(prev => prev + 1);
+  };
+  
+  const handlePrevWeek = () => {
+    setWeekOffset(prev => prev - 1);
+  };
   
   const handleAddSubmit = (data: any) => {
     if (selectedEmployeeId) {
-      addWorkEntry({
-        employeeId: selectedEmployeeId,
-        schoolId: data.schoolId,
-        date: data.date.toISOString().split('T')[0],
-        hours: data.hours,
-        lastEditedBy: editorName,
-        lastEditedAt: new Date().toISOString()
-      });
+      // Handle multiple entries if provided
+      if (data.entries) {
+        data.entries.forEach(entry => {
+          addWorkEntry({
+            employeeId: selectedEmployeeId,
+            schoolId: entry.schoolId,
+            date: data.date.toISOString().split('T')[0],
+            hours: entry.hours,
+            startTime: entry.startTime,
+            endTime: entry.endTime,
+            lastEditedBy: editorName,
+            lastEditedAt: new Date().toISOString()
+          });
+        });
+      } else {
+        // Handle single entry
+        addWorkEntry({
+          employeeId: selectedEmployeeId,
+          schoolId: data.schoolId,
+          date: data.date.toISOString().split('T')[0],
+          hours: data.hours,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          lastEditedBy: editorName,
+          lastEditedAt: new Date().toISOString()
+        });
+      }
       setIsAddDialogOpen(false);
     }
   };
 
   const handleEditSubmit = (data: any) => {
     if (currentEntry) {
-      updateWorkEntry({
-        id: currentEntry.id,
-        employeeId: currentEntry.employeeId,
-        schoolId: data.schoolId,
-        date: data.date.toISOString().split('T')[0],
-        hours: data.hours,
-        lastEditedBy: currentEntry.lastEditedBy,
-        lastEditedAt: currentEntry.lastEditedAt
-      }, editorName);
+      // Handle multiple entries if provided
+      if (data.entries) {
+        // Currently we only support editing one entry at a time
+        const entry = data.entries[0];
+        updateWorkEntry({
+          id: currentEntry.id,
+          employeeId: currentEntry.employeeId,
+          schoolId: entry.schoolId,
+          date: data.date.toISOString().split('T')[0],
+          hours: entry.hours,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          lastEditedBy: currentEntry.lastEditedBy,
+          lastEditedAt: currentEntry.lastEditedAt
+        }, editorName);
+      } else {
+        // Handle single entry
+        updateWorkEntry({
+          id: currentEntry.id,
+          employeeId: currentEntry.employeeId,
+          schoolId: data.schoolId,
+          date: data.date.toISOString().split('T')[0],
+          hours: data.hours,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          lastEditedBy: currentEntry.lastEditedBy,
+          lastEditedAt: currentEntry.lastEditedAt
+        }, editorName);
+      }
     }
     setIsEditDialogOpen(false);
     setCurrentEntry(null);
@@ -139,6 +241,17 @@ const Hours = () => {
     return format(date, "dd/MM/yyyy HH:mm");
   };
 
+  // Get today's hours
+  const today = new Date().toISOString().split('T')[0];
+  const todayHours = selectedEmployeeId ? getTotalHoursForEmployeeByDay(selectedEmployeeId, today) : 0;
+  
+  // Format the week range for display
+  const weekRangeDisplay = () => {
+    const startDate = new Date(weekDates[0]);
+    const endDate = new Date(weekDates[6]);
+    return `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`;
+  };
+
   return (
     <MainLayout>
       <div className="flex justify-between items-center mb-6">
@@ -167,7 +280,6 @@ const Hours = () => {
               <SelectValue placeholder="Selecciona un empleado" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos los empleados</SelectItem>
               {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {employee.name}
@@ -191,8 +303,16 @@ const Hours = () => {
         </div>
       </div>
 
-      {selectedEmployeeId && selectedEmployeeId !== "all" && (
+      {selectedEmployeeId && (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-4">
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Horas Hoy</h3>
+            <div className="flex items-center">
+              <Clock className="h-5 w-5 mr-2 text-blue-500" />
+              <span className="text-2xl font-bold">{todayHours}</span>
+            </div>
+          </Card>
+          
           <Card className="p-4">
             <h3 className="text-sm font-medium text-gray-500 mb-1">Horas este mes</h3>
             <div className="flex items-center">
@@ -200,6 +320,7 @@ const Hours = () => {
               <span className="text-2xl font-bold">{getTotalHoursByEmployeeThisMonth(selectedEmployeeId)}</span>
             </div>
           </Card>
+          
           <Card className="p-4">
             <h3 className="text-sm font-medium text-gray-500 mb-1">Horas este año</h3>
             <div className="flex items-center">
@@ -210,9 +331,23 @@ const Hours = () => {
         </div>
       )}
 
+      {selectedEmployeeId && hoursBySchool.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-2">Horas por Colegio este mes</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {hoursBySchool.map(item => (
+              <Card key={item.schoolId} className="p-4">
+                <h4 className="font-medium text-gray-700">{item.schoolName}</h4>
+                <div className="text-2xl font-bold mt-1">{item.hours}h</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Tabs defaultValue="list">
         <TabsList className="mb-4">
-          <TabsTrigger value="list">Vista de Lista</TabsTrigger>
+          <TabsTrigger value="list">Vista de Día</TabsTrigger>
           <TabsTrigger value="week">Vista Semanal</TabsTrigger>
         </TabsList>
 
@@ -226,6 +361,7 @@ const Hours = () => {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Colegio</TableHead>
                     <TableHead>Horas</TableHead>
+                    <TableHead>Horario</TableHead>
                     <TableHead>Editado por</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -251,6 +387,13 @@ const Hours = () => {
                           </TableCell>
                           <TableCell>{school?.name || "Desconocido"}</TableCell>
                           <TableCell>{entry.hours} horas</TableCell>
+                          <TableCell>
+                            {entry.startTime && entry.endTime ? (
+                              <span>{entry.startTime} - {entry.endTime}</span>
+                            ) : (
+                              <span className="text-gray-400">No especificado</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="text-xs">{entry.lastEditedBy}</span>
@@ -293,7 +436,7 @@ const Hours = () => {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                      <TableCell colSpan={7} className="text-center py-6 text-gray-500">
                         {selectedEmployeeId
                           ? "No hay registros para este empleado"
                           : "No hay registros de horas"}
@@ -307,76 +450,99 @@ const Hours = () => {
         </TabsContent>
 
         <TabsContent value="week">
-          {selectedEmployeeId && selectedEmployeeId !== "all" ? (
-            <div className="grid grid-cols-7 gap-2">
-              {weekDates.map((date, index) => {
-                const dayName = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][index];
-                const dayNumber = new Date(date).getDate();
-                const entries = getHoursForDate(selectedEmployeeId, date);
-                const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
-                
-                return (
-                  <div key={date} className="flex flex-col">
-                    <div className={`text-center p-2 rounded-t-md ${index === 0 || index === 6 ? 'bg-gray-200' : 'bg-company-blue text-white'}`}>
-                      <div className="font-bold">{dayName}</div>
-                      <div className="text-xs">{dayNumber}</div>
-                    </div>
-                    <Card className="flex-1 rounded-t-none">
-                      <div className="p-3">
-                        {entries.length > 0 ? (
-                          <div className="space-y-2">
-                            {entries.map(entry => (
-                              <div key={entry.id} className="text-sm border-b pb-1 last:border-b-0 last:pb-0">
-                                <div className="font-medium">{entry.schoolName}</div>
-                                <div className="flex justify-between items-center mt-1">
-                                  <span className="text-xs text-gray-500">{entry.hours} horas</span>
-                                  <div className="flex gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openEditDialog(entry)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openDeleteDialog(entry)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
+          {selectedEmployeeId ? (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <Button variant="outline" size="sm" onClick={handlePrevWeek}>
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Semana anterior
+                </Button>
+                <div className="font-medium">{weekRangeDisplay()}</div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>
+                    Hoy
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleNextWeek}>
+                    Semana siguiente
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {weekDates.map((date, index) => {
+                  const dayName = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][index];
+                  const dayNumber = new Date(date).getDate();
+                  const entries = getHoursForDate(selectedEmployeeId, date);
+                  const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
+                  
+                  return (
+                    <div key={date} className="flex flex-col">
+                      <div className={`text-center p-2 rounded-t-md ${index === 0 || index === 6 ? 'bg-gray-200' : 'bg-company-blue text-white'}`}>
+                        <div className="font-bold">{dayName}</div>
+                        <div className="text-xs">{dayNumber}</div>
+                      </div>
+                      <Card className="flex-1 rounded-t-none">
+                        <div className="p-3">
+                          {entries.length > 0 ? (
+                            <div className="space-y-2">
+                              {entries.map(entry => (
+                                <div key={entry.id} className="text-sm border-b pb-1 last:border-b-0 last:pb-0">
+                                  <div className="font-medium">{entry.schoolName}</div>
+                                  <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-gray-500">
+                                      {entry.hours} horas
+                                      {entry.startTime && entry.endTime && (
+                                        <span className="ml-1">({entry.startTime}-{entry.endTime})</span>
+                                      )}
+                                    </span>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openEditDialog(entry)}
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openDeleteDialog(entry)}
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="h-20 flex items-center justify-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setCurrentEntry({ employeeId: selectedEmployeeId, date });
-                                setIsAddDialogOpen(true);
-                              }}
-                              className="text-gray-400 hover:text-company-blue"
-                            >
-                              <PlusCircle className="h-5 w-5" />
-                            </Button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="h-20 flex items-center justify-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentEntry({ employeeId: selectedEmployeeId, date });
+                                  setIsAddDialogOpen(true);
+                                }}
+                                className="text-gray-400 hover:text-company-blue"
+                              >
+                                <PlusCircle className="h-5 w-5" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {entries.length > 0 && (
+                          <div className="bg-gray-100 p-2 text-center">
+                            <span className="font-medium">{totalHours} horas</span>
                           </div>
                         )}
-                      </div>
-                      {entries.length > 0 && (
-                        <div className="bg-gray-100 p-2 text-center">
-                          <span className="font-medium">{totalHours} horas</span>
-                        </div>
-                      )}
-                    </Card>
-                  </div>
-                );
-              })}
+                      </Card>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <div className="text-center py-10 bg-gray-50 rounded-lg">
@@ -431,6 +597,8 @@ const Hours = () => {
                 schoolId: currentEntry.schoolId,
                 date: currentEntry.date,
                 hours: currentEntry.hours,
+                startTime: currentEntry.startTime,
+                endTime: currentEntry.endTime
               }}
               onSubmit={handleEditSubmit}
               onCancel={() => setIsEditDialogOpen(false)}

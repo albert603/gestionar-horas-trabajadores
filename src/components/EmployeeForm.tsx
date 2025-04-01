@@ -11,16 +11,24 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Employee } from "@/types";
+import { Employee, Position } from "@/types";
+import { useApp } from "@/context/AppContext";
 
 const formSchema = z.object({
   name: z.string().min(3, {
     message: "El nombre debe tener al menos 3 caracteres.",
   }),
-  position: z.string().min(3, {
-    message: "El cargo debe tener al menos 3 caracteres.",
+  position: z.string().min(1, {
+    message: "Seleccione un cargo.",
   }),
   phone: z.string().min(5, {
     message: "El teléfono debe tener al menos 5 caracteres.",
@@ -37,6 +45,8 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormProps) {
+  const { positions } = useApp();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
@@ -70,9 +80,23 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
           render={({ field }) => (
             <FormItem>
               <FormLabel>Cargo</FormLabel>
-              <FormControl>
-                <Input placeholder="Profesor" {...field} />
-              </FormControl>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un cargo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {positions.map((position) => (
+                    <SelectItem key={position.id} value={position.name}>
+                      {position.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

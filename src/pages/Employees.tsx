@@ -34,7 +34,7 @@ import { Pencil, Trash2, UserPlus, Mail, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const Employees = () => {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, getTotalHoursByEmployeeThisWeek } = useApp();
+  const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -108,7 +108,6 @@ const Employees = () => {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Posición</TableHead>
                 <TableHead>Contacto</TableHead>
-                <TableHead>Horas esta semana</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -130,7 +129,6 @@ const Employees = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{getTotalHoursByEmployeeThisWeek(employee.id)} horas</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -153,7 +151,7 @@ const Employees = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-gray-500">
+                  <TableCell colSpan={4} className="text-center py-6 text-gray-500">
                     No se encontraron empleados
                   </TableCell>
                 </TableRow>

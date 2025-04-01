@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { employees, workEntries, schools, getSchoolById } = useApp();
   const activeEmployees = employees.filter(e => e.active).length;
-  const totalHours = workEntries.reduce((sum, entry) => sum + entry.hours, 0);
+  const [totalHours, setTotalHours] = useState(0);
+  const [todayHours, setTodayHours] = useState(0);
   
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -33,9 +34,32 @@ const Dashboard = () => {
     .slice(0, 5);
 
   const today = new Date().toISOString().split('T')[0];
-  const todayHours = workEntries
-    .filter(entry => entry.date === today)
-    .reduce((sum, entry) => sum + entry.hours, 0);
+  
+  // Calculate hours for the selected employee or all employees
+  useEffect(() => {
+    if (selectedEmployee) {
+      // Calculate totals for the selected employee
+      const empTotalHours = workEntries
+        .filter(entry => entry.employeeId === selectedEmployee)
+        .reduce((sum, entry) => sum + entry.hours, 0);
+      
+      const empTodayHours = workEntries
+        .filter(entry => entry.employeeId === selectedEmployee && entry.date === today)
+        .reduce((sum, entry) => sum + entry.hours, 0);
+      
+      setTotalHours(empTotalHours);
+      setTodayHours(empTodayHours);
+    } else {
+      // Calculate totals for all employees
+      const allTotalHours = workEntries.reduce((sum, entry) => sum + entry.hours, 0);
+      const allTodayHours = workEntries
+        .filter(entry => entry.date === today)
+        .reduce((sum, entry) => sum + entry.hours, 0);
+      
+      setTotalHours(allTotalHours);
+      setTodayHours(allTodayHours);
+    }
+  }, [selectedEmployee, workEntries, today]);
   
   // Get employee schools and hours data
   const employeeSchoolsData = employees
@@ -168,7 +192,7 @@ const Dashboard = () => {
                       <SelectValue placeholder="Todos los profesores" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos los profesores</SelectItem>
+                      <SelectItem value="">Todos los profesores</SelectItem>
                       {employees.map(employee => (
                         <SelectItem key={employee.id} value={employee.id}>
                           {employee.name}

@@ -34,3 +34,8 @@ export interface EditRecord {
   previousHours: number;
   newHours: number;
 }
+
+export interface Position {
+  id: string;
+  name: string;
+}
