@@ -56,6 +56,7 @@ const Hours = () => {
   const handleAddSubmit = (data: any) => {
     if (selectedEmployeeId) {
       addWorkEntry({
+        id: generateId(), // Add ID generation here
         employeeId: selectedEmployeeId,
         schoolId: data.schoolId,
         date: data.date.toISOString().split('T')[0],
@@ -63,6 +64,11 @@ const Hours = () => {
       });
       setIsAddDialogOpen(false);
     }
+  };
+
+  // Function to generate ID just like in data.ts
+  const generateId = (): string => {
+    return Math.random().toString(36).substring(2, 11);
   };
 
   const handleEditSubmit = (data: any) => {
@@ -134,7 +140,7 @@ const Hours = () => {
             <SelectValue placeholder="Selecciona un empleado" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos los empleados</SelectItem>
+            <SelectItem value="all">Todos los empleados</SelectItem>
             {employees.map((employee) => (
               <SelectItem key={employee.id} value={employee.id}>
                 {employee.name}
@@ -312,6 +318,7 @@ const Hours = () => {
           <WorkEntryForm
             schools={schools}
             initialData={currentEntry && currentEntry.date ? {
+              id: generateId(), // Add ID here too
               employeeId: currentEntry.employeeId,
               schoolId: "",
               date: currentEntry.date,
