@@ -1,5 +1,3 @@
-
-
 export interface Employee {
   id: string;
   name: string;
@@ -8,7 +6,7 @@ export interface Employee {
   email: string;
   active: boolean;
   assignedSchools?: string[]; // IDs de colegios asignados
-  role?: "admin" | "editor" | "user"; // New role field
+  role?: "Administrador" | "Editor" | "Usuario"; // Updated to match Role type
 }
 
 export interface School {
@@ -52,4 +50,3 @@ export interface Role {
     delete: boolean;
   };
 }
-
