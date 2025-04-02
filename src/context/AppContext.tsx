@@ -34,6 +34,7 @@ interface AppContextType {
   getTotalHoursByEmployeeThisYear: (employeeId: string) => number;
   getTotalHoursBySchoolThisMonth: (schoolId: string) => number;
   getTotalHoursByEmployeeAndSchoolThisMonth: (employeeId: string, schoolId: string) => number;
+  getTotalHoursForEmployeeByWeek: (employeeId: string) => number;
   getEditRecordsByWorkEntry: (workEntryId: string) => EditRecord[];
   getSchoolsByEmployee: (employeeId: string) => School[];
   getEmployeesBySchool: (schoolId: string) => Employee[];
@@ -404,6 +405,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .reduce((total, entry) => total + entry.hours, 0);
   };
 
+  const getTotalHoursForEmployeeByWeek = (employeeId: string) => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    return workEntries
+      .filter(entry => {
+        const entryDate = new Date(entry.date);
+        return (
+          entry.employeeId === employeeId &&
+          entryDate >= startOfWeek &&
+          entryDate <= endOfWeek
+        );
+      })
+      .reduce((total, entry) => total + entry.hours, 0);
+  };
+
   const getTotalHoursBySchoolAndMonth = (schoolId: string, month: number, year: number) => {
     const startOfMonth = new Date(year, month, 1);
     const endOfMonth = new Date(year, month + 1, 0);
@@ -489,6 +512,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getTotalHoursByEmployeeThisYear,
     getTotalHoursBySchoolThisMonth,
     getTotalHoursByEmployeeAndSchoolThisMonth,
+    getTotalHoursForEmployeeByWeek,
     getEditRecordsByWorkEntry,
     getSchoolsByEmployee,
     getEmployeesBySchool,
