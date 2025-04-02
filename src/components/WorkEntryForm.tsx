@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -98,7 +97,6 @@ export function WorkEntryForm({
     name: "schoolEntries"
   });
 
-  // Function to calculate hours from start and end time
   const calculateHours = (startTime: string, endTime: string): number => {
     if (!startTime || !endTime) return 0;
 
@@ -113,12 +111,10 @@ export function WorkEntryForm({
       minutes += 60;
     }
 
-    // Convert to decimal hours (rounded to nearest 0.5)
     const totalHours = hours + (minutes / 60);
-    return Math.round(totalHours * 2) / 2; // Round to nearest 0.5
+    return Math.round(totalHours * 2) / 2;
   };
 
-  // Update hours when start or end time changes
   useEffect(() => {
     if (useAutomaticCalculation) {
       const subscription = form.watch((value, { name }) => {
@@ -142,7 +138,6 @@ export function WorkEntryForm({
 
   const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
     if (data.schoolEntries.length === 1 && !isMultipleSchools) {
-      // Formato tradicional para una sola entrada
       onSubmit({
         employeeId: data.employeeId,
         schoolId: data.schoolEntries[0].schoolId,
@@ -152,7 +147,6 @@ export function WorkEntryForm({
         endTime: data.schoolEntries[0].endTime
       });
     } else {
-      // Para múltiples entradas, pasar un array para que el componente padre lo maneje
       onSubmit({
         employeeId: data.employeeId,
         date: data.date,
@@ -186,13 +180,14 @@ export function WorkEntryForm({
                   <User className="h-4 w-4" />
                   <span>Empleado</span>
                 </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || "select_employee"}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un empleado" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="select_employee" disabled>Seleccione un empleado</SelectItem>
                     {employees.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {employee.name}
@@ -299,13 +294,14 @@ export function WorkEntryForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Colegio</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || "select_school"}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccione un colegio" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="select_school" disabled>Seleccione un colegio</SelectItem>
                           {schools.map((school) => (
                             <SelectItem key={school.id} value={school.id}>
                               {school.name}
