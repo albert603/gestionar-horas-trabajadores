@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -56,7 +55,8 @@ const Schools = () => {
     workEntries, 
     addSchool, 
     updateSchool, 
-    deleteSchool, 
+    deleteSchool,
+    deleteSchoolAndResetHours, 
     getTotalHoursBySchoolThisMonth,
     getEmployeeById,
     getEmployeesBySchool
@@ -65,19 +65,18 @@ const Schools = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isForceDeleteDialogOpen, setIsForceDeleteDialogOpen] = useState(false);
   const [currentSchool, setCurrentSchool] = useState<any>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().getMonth() + "-" + new Date().getFullYear()
   );
   const [expandedSchools, setExpandedSchools] = useState<Record<string, boolean>>({});
 
-  // Calculate total hours per school for this month
   const schoolHours = schools.map(school => {
     const entries = workEntries.filter(entry => entry.schoolId === school.id);
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
     const monthlyHours = getTotalHoursBySchoolThisMonth(school.id);
     
-    // Get employees working at this school
     const schoolEmployees = getEmployeesBySchool(school.id);
     
     return {
@@ -115,6 +114,14 @@ const Schools = () => {
     setCurrentSchool(null);
   };
 
+  const handleForceDelete = () => {
+    if (currentSchool) {
+      deleteSchoolAndResetHours(currentSchool.id);
+    }
+    setIsForceDeleteDialogOpen(false);
+    setCurrentSchool(null);
+  };
+
   const openEditDialog = (school: any) => {
     setCurrentSchool(school);
     setIsEditDialogOpen(true);
@@ -125,6 +132,11 @@ const Schools = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const openForceDeleteDialog = (school: any) => {
+    setCurrentSchool(school);
+    setIsForceDeleteDialogOpen(true);
+  };
+
   const toggleSchoolExpand = (schoolId: string) => {
     setExpandedSchools(prev => ({
       ...prev,
@@ -132,13 +144,11 @@ const Schools = () => {
     }));
   };
 
-  // Generate months for report selection
   const generateMonthOptions = () => {
     const options = [];
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     
-    // Generate options for last 12 months
     for (let i = 0; i < 12; i++) {
       const date = new Date();
       date.setMonth(currentDate.getMonth() - i);
@@ -147,15 +157,13 @@ const Schools = () => {
       const year = date.getFullYear();
       const value = `${month}-${year}`;
       
-      // Format as "Septiembre 2023"
       const formattedDate = format(date, "MMMM yyyy", { locale: es });
       options.push({ value, label: formattedDate });
     }
     
     return options;
   };
-  
-  // Filter work entries for monthly report
+
   const getMonthlyReportData = () => {
     if (!selectedMonth) return [];
     
@@ -164,7 +172,7 @@ const Schools = () => {
     const year = parseInt(yearStr);
     
     const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, month + 1, 0); // Last day of month
+    const endDate = new Date(year, month + 1, 0);
     
     const filteredEntries = workEntries.filter(entry => {
       const entryDate = new Date(entry.date);
@@ -174,7 +182,6 @@ const Schools = () => {
       );
     });
     
-    // Group by schoolId and then by employeeId
     const schoolReport: Record<string, any> = {};
     
     filteredEntries.forEach(entry => {
@@ -267,13 +274,24 @@ const Schools = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openDeleteDialog(school)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openDeleteDialog(school)}>
+                                Eliminar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openForceDeleteDialog(school)}>
+                                Eliminar y restablecer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -415,7 +433,6 @@ const Schools = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add School Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -431,7 +448,6 @@ const Schools = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit School Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -450,7 +466,6 @@ const Schools = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -467,6 +482,23 @@ const Schools = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isForceDeleteDialogOpen} onOpenChange={setIsForceDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente este colegio y todos sus registros de horas asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleForceDelete} className="bg-red-600 hover:bg-red-700">
+              Eliminar y restablecer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -5,8 +5,10 @@ export interface Employee {
   phone: string;
   email: string;
   active: boolean;
+  username?: string;
+  password?: string;
   assignedSchools?: string[]; // IDs de colegios asignados
-  role?: "Administrador" | "Editor" | "Usuario"; // Updated to match Role type
+  role?: string;
 }
 
 export interface School {

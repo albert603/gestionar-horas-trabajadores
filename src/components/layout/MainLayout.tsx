@@ -2,7 +2,7 @@
 import React, { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Users, Home, CalendarClock, School, Briefcase, Shield } from "lucide-react";
+import { Users, Home, CalendarClock, School, Briefcase, Shield, History } from "lucide-react";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -19,6 +19,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
     { path: "/schools", label: "Colegios", icon: <School className="w-5 h-5" /> },
     { path: "/positions", label: "Cargos", icon: <Briefcase className="w-5 h-5" /> },
     { path: "/roles", label: "Privilegios", icon: <Shield className="w-5 h-5" /> },
+    { path: "/history", label: "Historial", icon: <History className="w-5 h-5" /> },
   ];
 
   return (

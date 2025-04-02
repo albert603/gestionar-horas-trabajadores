@@ -17,6 +17,7 @@ interface AppContextType {
   addSchool: (school: Omit<School, "id">) => void;
   updateSchool: (school: School) => void;
   deleteSchool: (id: string) => void;
+  deleteSchoolAndResetHours: (id: string) => void;
   addWorkEntry: (entry: Omit<WorkEntry, "id">) => void;
   updateWorkEntry: (entry: WorkEntry, editorName: string) => void;
   deleteWorkEntry: (id: string) => void;
@@ -43,9 +44,21 @@ interface AppContextType {
     employee: Employee;
     hours: number;
   }[];
+  getHistoryLogs: () => HistoryLog[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export interface HistoryLog {
+  id: string;
+  action: "create" | "update" | "delete";
+  entityType: "employee" | "school" | "workEntry" | "position" | "role";
+  entityId: string;
+  entityName?: string;
+  performedBy: string;
+  timestamp: string;
+  details?: string;
+}
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
@@ -89,12 +102,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } 
     }
   ]);
+  const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
   
   const { toast } = useToast();
 
   const addEmployee = (employee: Omit<Employee, "id">) => {
-    const newEmployee = { ...employee, id: generateId() };
+    const newEmployee = { ...employee, id: generateId(), active: true };
     setEmployees([...employees, newEmployee]);
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "create",
+      entityType: "employee",
+      entityId: newEmployee.id,
+      entityName: newEmployee.name,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: "Empleado creado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Empleado agregado",
       description: `${newEmployee.name} ha sido agregado correctamente.`
@@ -103,6 +131,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateEmployee = (employee: Employee) => {
     setEmployees(employees.map(e => (e.id === employee.id ? employee : e)));
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "update",
+      entityType: "employee",
+      entityId: employee.id,
+      entityName: employee.name,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: "Empleado actualizado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Empleado actualizado",
       description: `${employee.name} ha sido actualizado correctamente.`
@@ -114,6 +156,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setEmployees(employees.filter(e => e.id !== id));
     
     setWorkEntries(workEntries.filter(entry => entry.employeeId !== id));
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "delete",
+      entityType: "employee",
+      entityId: id,
+      entityName: employee?.name,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: "Empleado eliminado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
     
     toast({
       title: "Empleado eliminado",
@@ -146,16 +201,59 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (isSchoolInUse) {
       toast({
         title: "Error al eliminar",
-        description: "Este colegio no puede ser eliminado porque tiene registros de horas asociados.",
+        description: "Este colegio no puede ser eliminado porque tiene registros de horas asociados. Use 'Eliminar y restablecer' para borrar todos sus registros.",
         variant: "destructive"
       });
       return;
     }
     
     setSchools(schools.filter(s => s.id !== id));
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "delete",
+      entityType: "school",
+      entityId: id,
+      entityName: school?.name,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: "Colegio eliminado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Colegio eliminado",
       description: school ? `${school.name} ha sido eliminado correctamente.` : "Colegio eliminado correctamente"
+    });
+  };
+
+  const deleteSchoolAndResetHours = (id: string) => {
+    const school = schools.find(s => s.id === id);
+    if (!school) return;
+    
+    const relatedEntries = workEntries.filter(entry => entry.schoolId === id);
+    
+    setWorkEntries(workEntries.filter(entry => entry.schoolId !== id));
+    
+    setSchools(schools.filter(s => s.id !== id));
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "delete",
+      entityType: "school",
+      entityId: id,
+      entityName: school?.name,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: `Colegio eliminado con ${relatedEntries.length} registros de horas`
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
+    toast({
+      title: "Colegio eliminado",
+      description: `${school.name} ha sido eliminado correctamente junto con todos sus registros de horas.`
     });
   };
 
@@ -168,6 +266,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       lastEditedAt: now.toISOString()
     };
     setWorkEntries([...workEntries, newEntry]);
+    
+    const employee = getEmployeeById(newEntry.employeeId);
+    const school = getSchoolById(newEntry.schoolId);
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "create",
+      entityType: "workEntry",
+      entityId: newEntry.id,
+      entityName: `${employee?.name || "Desconocido"} - ${school?.name || "Desconocido"}`,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: `Registro de ${newEntry.hours} horas creado`
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Horas registradas",
       description: "Las horas de trabajo se han registrado correctamente."
@@ -206,6 +321,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setWorkEntries(workEntries.map(e => (e.id === entry.id ? updatedEntry : e)));
     }
     
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "update",
+      entityType: "workEntry",
+      entityId: entry.id,
+      entityName: `${getEmployeeById(entry.employeeId)?.name || "Desconocido"} - ${getSchoolById(entry.schoolId)?.name || "Desconocido"}`,
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: "Registro actualizado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Registro actualizado",
       description: "Las horas de trabajo se han actualizado correctamente."
@@ -214,6 +342,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteWorkEntry = (id: string) => {
     setWorkEntries(workEntries.filter(e => e.id !== id));
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "delete",
+      entityType: "workEntry",
+      entityId: id,
+      entityName: "Desconocido",
+      performedBy: "Usuario",
+      timestamp: new Date().toISOString(),
+      details: "Registro eliminado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Registro eliminado",
       description: "Las horas de trabajo se han eliminado correctamente."
@@ -482,6 +623,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return employees.filter(employee => employeeIds.includes(employee.id));
   };
 
+  const getHistoryLogs = () => {
+    return historyLogs;
+  };
+
   const contextValue: AppContextType = {
     employees,
     schools,
@@ -495,6 +640,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addSchool,
     updateSchool,
     deleteSchool,
+    deleteSchoolAndResetHours,
     addWorkEntry,
     updateWorkEntry,
     deleteWorkEntry,
@@ -517,7 +663,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getSchoolsByEmployee,
     getEmployeesBySchool,
     getTotalHoursForEmployeeByDay,
-    getTotalHoursBySchoolAndMonth
+    getTotalHoursBySchoolAndMonth,
+    getHistoryLogs
   };
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
