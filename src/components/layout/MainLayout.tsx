@@ -2,7 +2,7 @@
 import React, { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Users, Home, CalendarClock, School, Briefcase } from "lucide-react";
+import { Users, Home, CalendarClock, School, Briefcase, Shield } from "lucide-react";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -15,9 +15,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   const navItems = [
     { path: "/", label: "Dashboard", icon: <Home className="w-5 h-5" /> },
     { path: "/employees", label: "Empleados", icon: <Users className="w-5 h-5" /> },
-    { path: "/hours", label: "Registros", icon: <CalendarClock className="w-5 h-5" /> },
+    { path: "/hours", label: "Registros de Horas de Trabajadores", icon: <CalendarClock className="w-5 h-5" /> },
     { path: "/schools", label: "Colegios", icon: <School className="w-5 h-5" /> },
     { path: "/positions", label: "Cargos", icon: <Briefcase className="w-5 h-5" /> },
+    { path: "/roles", label: "Privilegios", icon: <Shield className="w-5 h-5" /> },
   ];
 
   return (

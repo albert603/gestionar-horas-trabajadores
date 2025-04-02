@@ -30,11 +30,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmployeeForm } from "@/components/EmployeeForm";
 import { Employee } from "@/types";
-import { Pencil, Trash2, UserPlus, Mail, Phone } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Mail, Phone, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 const Employees = () => {
-  const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, roles } = useApp();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -78,6 +79,18 @@ const Employees = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  // Helper function to get badge variant based on role
+  const getRoleBadgeVariant = (role?: string) => {
+    switch (role) {
+      case "Administrador":
+        return "destructive";
+      case "Editor":
+        return "outline";
+      default:
+        return "default";
+    }
+  };
+
   return (
     <MainLayout>
       <div className="flex justify-between items-center mb-6">
@@ -108,6 +121,7 @@ const Employees = () => {
                 <TableHead>Nombre</TableHead>
                 <TableHead>Posición</TableHead>
                 <TableHead>Contacto</TableHead>
+                <TableHead>Privilegios</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -128,6 +142,16 @@ const Employees = () => {
                           <span className="text-sm">{employee.email}</span>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {employee.role ? (
+                        <Badge variant={getRoleBadgeVariant(employee.role)} className="flex items-center gap-1">
+                          <Shield className="h-3 w-3" />
+                          {employee.role}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400">No asignado</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -151,7 +175,7 @@ const Employees = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6 text-gray-500">
+                  <TableCell colSpan={5} className="text-center py-6 text-gray-500">
                     No se encontraron empleados
                   </TableCell>
                 </TableRow>
