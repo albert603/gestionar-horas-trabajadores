@@ -61,7 +61,9 @@ const SchoolMonthlyReport = () => {
     }
     
     setMonths(monthOptions);
-    setSelectedMonth(monthOptions[0].value);
+    if (monthOptions.length > 0) {
+      setSelectedMonth(monthOptions[0].value);
+    }
   }, []);
   
   // Update report data when school or month changes

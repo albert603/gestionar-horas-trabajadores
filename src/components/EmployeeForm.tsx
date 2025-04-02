@@ -116,7 +116,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
               </FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                defaultValue={field.value || ""}
+                defaultValue={field.value || "no_role"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -124,7 +124,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Sin privilegios</SelectItem>
+                  <SelectItem value="no_role">Sin privilegios</SelectItem>
                   {roles.map((role) => (
                     <SelectItem key={role.id} value={role.name}>
                       {role.name}
