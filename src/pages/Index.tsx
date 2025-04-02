@@ -192,7 +192,7 @@ const Dashboard = () => {
                   <TableBody>
                     {filteredEmployees.length > 0 ? (
                       filteredEmployees.map(employee => (
-                        <TableRow key={employee.id}>
+                        <TableRow key={employee.id} className="cursor-pointer" onClick={() => setSelectedEmployee(employee.id)}>
                           <TableCell className="font-medium">
                             <div className="flex flex-col">
                               <span>{employee.name}</span>
@@ -206,7 +206,10 @@ const Dashboard = () => {
                                   <Badge 
                                     key={school.id} 
                                     className="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                    onClick={() => handleSchoolClick(school.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSchoolClick(school.id);
+                                    }}
                                   >
                                     {school.name}
                                   </Badge>
@@ -242,8 +245,8 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>
               {selectedEmployee 
-                ? `Registros de ${employees.find(e => e.id === selectedEmployee)?.name || "Profesor"}`
-                : "Registros Recientes"}
+                ? `Registro de Horas del Trabajador ${employees.find(e => e.id === selectedEmployee)?.name || ""}`
+                : "Registro de Horas del Trabajador"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -278,7 +281,7 @@ const Dashboard = () => {
               )
             ) : (
               <div className="text-center py-4 text-gray-500">
-                Seleccione un profesor para ver sus registros recientes
+                Seleccione un profesor para ver sus registros de horas
               </div>
             )}
             <div className="mt-4 text-center">
@@ -313,6 +316,17 @@ const Dashboard = () => {
             )}
           >
             Gestionar Colegios
+          </Link>
+          <Link 
+            to="/roles" 
+            className={cn(
+              "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background",
+              "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+              "bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            )}
+          >
+            Privilegios
           </Link>
         </div>
       </div>
