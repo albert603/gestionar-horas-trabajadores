@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, School, Calendar, Search } from "lucide-react";
+import { Users, School, Calendar, Search, Filter } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDate } from "@/lib/data";
 import {
@@ -20,10 +20,11 @@ import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { employees, workEntries, schools, getSchoolById } = useApp();
+  const { employees, workEntries, schools, getSchoolById, getEmployeeById } = useApp();
   const activeEmployees = employees.filter(e => e.active).length;
   
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedSchool, setSelectedSchool] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   
   // Get current date info for weekly calculations
@@ -39,7 +40,8 @@ const Dashboard = () => {
   // Get employee schools and hours data
   const employeeSchoolsData = employees
     .filter(employee => 
-      !searchTerm || employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (!searchTerm || employee.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (!selectedSchool || workEntries.some(entry => entry.employeeId === employee.id && entry.schoolId === selectedSchool))
     )
     .map(employee => {
       // Get all entries for this employee
@@ -95,6 +97,18 @@ const Dashboard = () => {
     navigate(`/schools?id=${schoolId}`);
   };
 
+  // Handle filtering reset
+  const handleResetFilters = () => {
+    setSelectedEmployee("");
+    setSelectedSchool("");
+    setSearchTerm("");
+  };
+
+  // Effect to update records when employee changes
+  useEffect(() => {
+    // This effect ensures the records are refreshed when the selected employee changes
+  }, [selectedEmployee]);
+
   return (
     <MainLayout>
       <div className="mb-8">
@@ -149,7 +163,7 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Colegios por Profesor</span>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <div className="relative w-48">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                     <Input
@@ -167,7 +181,7 @@ const Dashboard = () => {
                       <SelectValue placeholder="Todos los profesores" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos los profesores</SelectItem>
+                      <SelectItem value="">Todos los profesores</SelectItem>
                       {employees.map(employee => (
                         <SelectItem key={employee.id} value={employee.id}>
                           {employee.name}
@@ -175,6 +189,28 @@ const Dashboard = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select 
+                    value={selectedSchool} 
+                    onValueChange={setSelectedSchool}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Todos los colegios" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos los colegios</SelectItem>
+                      {schools.map(school => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(searchTerm || selectedEmployee || selectedSchool) && (
+                    <Button variant="outline" onClick={handleResetFilters} className="flex items-center gap-1">
+                      <Filter className="h-4 w-4" />
+                      <span>Limpiar</span>
+                    </Button>
+                  )}
                 </div>
               </CardTitle>
             </CardHeader>

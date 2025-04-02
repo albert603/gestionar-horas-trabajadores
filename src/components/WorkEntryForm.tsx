@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { School, WorkEntry } from "@/types";
-import { CalendarIcon, PlusCircle, Trash2, Clock } from "lucide-react";
+import { School, WorkEntry, Employee } from "@/types";
+import { CalendarIcon, PlusCircle, Trash2, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { useApp } from "@/context/AppContext";
 
 const schoolEntrySchema = z.object({
   schoolId: z.string({
@@ -47,6 +48,9 @@ const schoolEntrySchema = z.object({
 });
 
 const formSchema = z.object({
+  employeeId: z.string({
+    required_error: "Seleccione un empleado."
+  }),
   date: z.date({
     required_error: "Seleccione una fecha.",
   }),
@@ -59,24 +63,33 @@ type WorkEntryFormProps = {
   initialData?: Partial<WorkEntry>;
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  hideEmployeeSelect?: boolean;
 };
 
-export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: WorkEntryFormProps) {
+export function WorkEntryForm({ 
+  schools, 
+  initialData, 
+  onSubmit, 
+  onCancel,
+  hideEmployeeSelect = false
+}: WorkEntryFormProps) {
+  const { employees } = useApp();
   const [isMultipleSchools, setIsMultipleSchools] = useState(false);
   const [useAutomaticCalculation, setUseAutomaticCalculation] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      employeeId: initialData?.employeeId || "",
       date: initialData?.date ? new Date(initialData.date) : new Date(),
       schoolEntries: initialData?.schoolId
         ? [{ 
             schoolId: initialData.schoolId, 
-            hours: initialData.hours || 8,
+            hours: initialData.hours || 0,
             startTime: initialData.startTime || "",
             endTime: initialData.endTime || "" 
           }]
-        : [{ schoolId: "", hours: 8, startTime: "", endTime: "" }]
+        : [{ schoolId: "", hours: 0, startTime: "", endTime: "" }]
     },
   });
 
@@ -131,6 +144,7 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
     if (data.schoolEntries.length === 1 && !isMultipleSchools) {
       // Formato tradicional para una sola entrada
       onSubmit({
+        employeeId: data.employeeId,
         schoolId: data.schoolEntries[0].schoolId,
         date: data.date,
         hours: data.schoolEntries[0].hours,
@@ -140,6 +154,7 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
     } else {
       // Para múltiples entradas, pasar un array para que el componente padre lo maneje
       onSubmit({
+        employeeId: data.employeeId,
         date: data.date,
         entries: data.schoolEntries
       });
@@ -147,7 +162,7 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
   };
 
   const addSchoolEntry = () => {
-    append({ schoolId: "", hours: 4, startTime: "", endTime: "" });
+    append({ schoolId: "", hours: 0, startTime: "", endTime: "" });
     setIsMultipleSchools(true);
   };
 
@@ -161,6 +176,36 @@ export function WorkEntryForm({ schools, initialData, onSubmit, onCancel }: Work
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {!hideEmployeeSelect && (
+          <FormField
+            control={form.control}
+            name="employeeId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  <span>Empleado</span>
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un empleado" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <FormField
           control={form.control}
           name="date"

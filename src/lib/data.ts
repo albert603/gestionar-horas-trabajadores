@@ -70,27 +70,45 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
 }
 
-export function getDayOfWeek(dateString: string): string {
+/**
+ * Returns the day of the week for a given date string
+ * @param dateString Date string in ISO format (YYYY-MM-DD)
+ */
+export const getDayOfWeek = (dateString: string): string => {
   const date = new Date(dateString);
-  const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const days = [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ];
   return days[date.getDay()];
-}
+};
 
-export function getCurrentWeekDates(): string[] {
-  const today = new Date();
-  const day = today.getDay(); // 0 = Sunday, 6 = Saturday
+/**
+ * Returns the dates for the current week, starting on Monday
+ */
+export const getCurrentWeekDates = (startingDate = new Date()) => {
+  const currentDate = new Date(startingDate);
+  const day = currentDate.getDay(); // 0 is Sunday
   
-  // Calculate the first day of the week (Sunday)
-  const firstDayOfWeek = new Date(today);
-  firstDayOfWeek.setDate(today.getDate() - day);
+  // Calculate the Monday before (or the current day if it's Monday)
+  const monday = new Date(currentDate);
+  monday.setDate(currentDate.getDate() - (day === 0 ? 6 : day - 1));
   
-  // Generate array of dates for the week
-  return Array(7).fill(0).map((_, index) => {
-    const date = new Date(firstDayOfWeek);
-    date.setDate(firstDayOfWeek.getDate() + index);
-    return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-  });
-}
+  // Generate an array of dates for the week
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+  
+  return dates;
+};
 
 export function getMonthName(month: number): string {
   const months = [

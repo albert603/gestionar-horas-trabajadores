@@ -31,9 +31,8 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getCurrentWeekDates, getDayOfWeek } from "@/lib/data";
-import { format, addDays, addWeeks, subWeeks } from "date-fns";
-import { EditRecord, School } from "@/types";
+import { format, addDays, addWeeks, subWeeks, startOfWeek as dateStartOfWeek, endOfWeek as dateEndOfWeek } from "date-fns";
+import { EditRecord } from "@/types";
 
 const Hours = () => {
   const { 
@@ -49,7 +48,8 @@ const Hours = () => {
     getTotalHoursByEmployeeThisMonth,
     getTotalHoursByEmployeeThisYear,
     getEditRecordsByWorkEntry,
-    getTotalHoursForEmployeeByDay
+    getTotalHoursForEmployeeByDay,
+    getTotalHoursForEmployeeByWeek
   } = useApp();
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
@@ -59,7 +59,7 @@ const Hours = () => {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<any>(null);
   const [editorName, setEditorName] = useState<string>("Usuario");
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date());
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(dateStartOfWeek(new Date(), { weekStartsOn: 1 }));
   const [weekOffset, setWeekOffset] = useState(0);
   
   // Calculate hours by school for selected employee
@@ -112,15 +112,10 @@ const Hours = () => {
   const weekDates = React.useMemo(() => {
     // Adjust current week based on offset
     const baseDate = addWeeks(currentWeekStart, weekOffset);
-    const dayOfWeek = baseDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
-    const diff = baseDate.getDate() - dayOfWeek;
-    const startOfWeek = new Date(baseDate);
-    startOfWeek.setDate(diff);
-    startOfWeek.setHours(0, 0, 0, 0);
     
-    // Generate dates for the entire week
+    // Generate dates for the entire week (Monday to Sunday)
     return Array.from({ length: 7 }).map((_, i) => {
-      const date = addDays(startOfWeek, i);
+      const date = addDays(baseDate, i);
       return format(date, 'yyyy-MM-dd');
     });
   }, [currentWeekStart, weekOffset]);
@@ -134,36 +129,34 @@ const Hours = () => {
   };
   
   const handleAddSubmit = (data: any) => {
-    if (selectedEmployeeId) {
-      // Handle multiple entries if provided
-      if (data.entries) {
-        data.entries.forEach(entry => {
-          addWorkEntry({
-            employeeId: selectedEmployeeId,
-            schoolId: entry.schoolId,
-            date: data.date.toISOString().split('T')[0],
-            hours: entry.hours,
-            startTime: entry.startTime,
-            endTime: entry.endTime,
-            lastEditedBy: editorName,
-            lastEditedAt: new Date().toISOString()
-          });
-        });
-      } else {
-        // Handle single entry
+    // Handle multiple entries if provided
+    if (data.entries) {
+      data.entries.forEach(entry => {
         addWorkEntry({
-          employeeId: selectedEmployeeId,
-          schoolId: data.schoolId,
+          employeeId: data.employeeId,
+          schoolId: entry.schoolId,
           date: data.date.toISOString().split('T')[0],
-          hours: data.hours,
-          startTime: data.startTime,
-          endTime: data.endTime,
+          hours: entry.hours,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
           lastEditedBy: editorName,
           lastEditedAt: new Date().toISOString()
         });
-      }
-      setIsAddDialogOpen(false);
+      });
+    } else {
+      // Handle single entry
+      addWorkEntry({
+        employeeId: data.employeeId,
+        schoolId: data.schoolId,
+        date: data.date.toISOString().split('T')[0],
+        hours: data.hours,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        lastEditedBy: editorName,
+        lastEditedAt: new Date().toISOString()
+      });
     }
+    setIsAddDialogOpen(false);
   };
 
   const handleEditSubmit = (data: any) => {
@@ -174,7 +167,7 @@ const Hours = () => {
         const entry = data.entries[0];
         updateWorkEntry({
           id: currentEntry.id,
-          employeeId: currentEntry.employeeId,
+          employeeId: data.employeeId || currentEntry.employeeId,
           schoolId: entry.schoolId,
           date: data.date.toISOString().split('T')[0],
           hours: entry.hours,
@@ -187,7 +180,7 @@ const Hours = () => {
         // Handle single entry
         updateWorkEntry({
           id: currentEntry.id,
-          employeeId: currentEntry.employeeId,
+          employeeId: data.employeeId || currentEntry.employeeId,
           schoolId: data.schoolId,
           date: data.date.toISOString().split('T')[0],
           hours: data.hours,
@@ -245,6 +238,9 @@ const Hours = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayHours = selectedEmployeeId ? getTotalHoursForEmployeeByDay(selectedEmployeeId, today) : 0;
   
+  // Get this week's hours
+  const thisWeekHours = selectedEmployeeId ? getTotalHoursForEmployeeByWeek(selectedEmployeeId) : 0;
+  
   // Format the week range for display
   const weekRangeDisplay = () => {
     const startDate = new Date(weekDates[0]);
@@ -259,12 +255,10 @@ const Hours = () => {
           <h1 className="text-3xl font-bold text-gray-800">Registro de Horas</h1>
           <p className="text-gray-600">Gestiona las horas trabajadas por los empleados</p>
         </div>
-        {selectedEmployeeId && (
-          <Button onClick={() => setIsAddDialogOpen(true)} className="flex items-center gap-1">
-            <CalendarPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Registrar Horas</span>
-          </Button>
-        )}
+        <Button onClick={() => setIsAddDialogOpen(true)} className="flex items-center gap-1">
+          <CalendarPlus className="h-4 w-4" />
+          <span className="hidden sm:inline">Registrar Horas</span>
+        </Button>
       </div>
 
       <div className="mb-6 flex flex-col md:flex-row gap-4">
@@ -314,18 +308,18 @@ const Hours = () => {
           </Card>
           
           <Card className="p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Horas este mes</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Horas esta semana</h3>
             <div className="flex items-center">
               <Clock className="h-5 w-5 mr-2 text-blue-500" />
-              <span className="text-2xl font-bold">{getTotalHoursByEmployeeThisMonth(selectedEmployeeId)}</span>
+              <span className="text-2xl font-bold">{thisWeekHours}</span>
             </div>
           </Card>
           
           <Card className="p-4">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Horas este año</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">Horas este mes</h3>
             <div className="flex items-center">
               <Clock className="h-5 w-5 mr-2 text-green-500" />
-              <span className="text-2xl font-bold">{getTotalHoursByEmployeeThisYear(selectedEmployeeId)}</span>
+              <span className="text-2xl font-bold">{getTotalHoursByEmployeeThisMonth(selectedEmployeeId)}</span>
             </div>
           </Card>
         </div>
@@ -380,9 +374,6 @@ const Hours = () => {
                           <TableCell>
                             <div className="flex flex-col">
                               <span>{formatDate(entry.date)}</span>
-                              <span className="text-xs text-gray-500">
-                                {getDayOfWeek(entry.date)}
-                              </span>
                             </div>
                           </TableCell>
                           <TableCell>{school?.name || "Desconocido"}</TableCell>
@@ -470,14 +461,14 @@ const Hours = () => {
               </div>
               <div className="grid grid-cols-7 gap-2">
                 {weekDates.map((date, index) => {
-                  const dayName = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][index];
+                  const dayName = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][index];
                   const dayNumber = new Date(date).getDate();
                   const entries = getHoursForDate(selectedEmployeeId, date);
                   const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
                   
                   return (
                     <div key={date} className="flex flex-col">
-                      <div className={`text-center p-2 rounded-t-md ${index === 0 || index === 6 ? 'bg-gray-200' : 'bg-company-blue text-white'}`}>
+                      <div className={`text-center p-2 rounded-t-md ${index === 5 || index === 6 ? 'bg-gray-200' : 'bg-company-blue text-white'}`}>
                         <div className="font-bold">{dayName}</div>
                         <div className="text-xs">{dayNumber}</div>
                       </div>
@@ -523,7 +514,10 @@ const Hours = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  setCurrentEntry({ employeeId: selectedEmployeeId, date });
+                                  setCurrentEntry({ 
+                                    employeeId: selectedEmployeeId, 
+                                    date 
+                                  });
                                   setIsAddDialogOpen(true);
                                 }}
                                 className="text-gray-400 hover:text-company-blue"
@@ -564,11 +558,12 @@ const Hours = () => {
           <WorkEntryForm
             schools={schools}
             initialData={currentEntry && currentEntry.date ? {
-              employeeId: currentEntry.employeeId,
-              schoolId: "",
+              employeeId: currentEntry.employeeId || selectedEmployeeId,
               date: currentEntry.date,
-              hours: 8
-            } : undefined}
+              hours: 0
+            } : { 
+              employeeId: selectedEmployeeId 
+            }}
             onSubmit={handleAddSubmit}
             onCancel={() => {
               setIsAddDialogOpen(false);
@@ -576,6 +571,7 @@ const Hours = () => {
                 setCurrentEntry(null);
               }
             }}
+            hideEmployeeSelect={!!selectedEmployeeId && !currentEntry}
           />
         </DialogContent>
       </Dialog>
@@ -602,6 +598,7 @@ const Hours = () => {
               }}
               onSubmit={handleEditSubmit}
               onCancel={() => setIsEditDialogOpen(false)}
+              hideEmployeeSelect={true}
             />
           )}
         </DialogContent>

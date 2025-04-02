@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Employee, Position } from "@/types";
 import { useApp } from "@/context/AppContext";
+import { Shield } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -36,6 +37,7 @@ const formSchema = z.object({
   email: z.string().email({
     message: "Ingrese un email válido.",
   }),
+  role: z.string().optional(),
 });
 
 type EmployeeFormProps = {
@@ -45,7 +47,7 @@ type EmployeeFormProps = {
 };
 
 export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormProps) {
-  const { positions } = useApp();
+  const { positions, roles } = useApp();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,6 +56,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
       position: "",
       phone: "",
       email: "",
+      role: "",
     },
   });
 
@@ -93,6 +96,38 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   {positions.map((position) => (
                     <SelectItem key={position.id} value={position.name}>
                       {position.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-1">
+                <Shield className="h-4 w-4" />
+                <span>Privilegios</span>
+              </FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un nivel de acceso" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">Sin privilegios</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
