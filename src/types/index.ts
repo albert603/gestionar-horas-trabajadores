@@ -1,4 +1,5 @@
 
+
 export interface Employee {
   id: string;
   name: string;
@@ -7,6 +8,7 @@ export interface Employee {
   email: string;
   active: boolean;
   assignedSchools?: string[]; // IDs de colegios asignados
+  role?: "admin" | "editor" | "user"; // New role field
 }
 
 export interface School {
@@ -39,3 +41,15 @@ export interface Position {
   id: string;
   name: string;
 }
+
+export interface Role {
+  id: string;
+  name: "Administrador" | "Editor" | "Usuario";
+  permissions: {
+    create: boolean;
+    read: boolean;
+    update: boolean;
+    delete: boolean;
+  };
+}
+

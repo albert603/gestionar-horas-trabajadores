@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Clock, School, Calendar, Search } from "lucide-react";
+import { Users, School, Calendar, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDate } from "@/lib/data";
 import {
@@ -22,44 +22,19 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { employees, workEntries, schools, getSchoolById } = useApp();
   const activeEmployees = employees.filter(e => e.active).length;
-  const [totalHours, setTotalHours] = useState(0);
-  const [todayHours, setTodayHours] = useState(0);
   
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   
-  // Recent entries (last 5)
-  const recentEntries = [...workEntries]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
-
-  const today = new Date().toISOString().split('T')[0];
+  // Get current date info for weekly calculations
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay()); // Start from Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
   
-  // Calculate hours for the selected employee or all employees
-  useEffect(() => {
-    if (selectedEmployee) {
-      // Calculate totals for the selected employee
-      const empTotalHours = workEntries
-        .filter(entry => entry.employeeId === selectedEmployee)
-        .reduce((sum, entry) => sum + entry.hours, 0);
-      
-      const empTodayHours = workEntries
-        .filter(entry => entry.employeeId === selectedEmployee && entry.date === today)
-        .reduce((sum, entry) => sum + entry.hours, 0);
-      
-      setTotalHours(empTotalHours);
-      setTodayHours(empTodayHours);
-    } else {
-      // Calculate totals for all employees
-      const allTotalHours = workEntries.reduce((sum, entry) => sum + entry.hours, 0);
-      const allTodayHours = workEntries
-        .filter(entry => entry.date === today)
-        .reduce((sum, entry) => sum + entry.hours, 0);
-      
-      setTotalHours(allTotalHours);
-      setTodayHours(allTodayHours);
-    }
-  }, [selectedEmployee, workEntries, today]);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6); // End on Saturday
+  endOfWeek.setHours(23, 59, 59, 999);
   
   // Get employee schools and hours data
   const employeeSchoolsData = employees
@@ -76,8 +51,13 @@ const Dashboard = () => {
         .map(schoolId => getSchoolById(schoolId))
         .filter(Boolean);
       
-      // Calculate total hours
-      const totalHours = employeeEntries.reduce((sum, entry) => sum + entry.hours, 0);
+      // Calculate weekly hours
+      const weeklyHours = employeeEntries
+        .filter(entry => {
+          const entryDate = new Date(entry.date);
+          return entryDate >= startOfWeek && entryDate <= endOfWeek;
+        })
+        .reduce((sum, entry) => sum + entry.hours, 0);
       
       // Calculate monthly hours
       const now = new Date();
@@ -94,7 +74,7 @@ const Dashboard = () => {
       return {
         ...employee,
         schools: employeeSchools,
-        totalHours,
+        weeklyHours,
         monthlyHours
       };
     });
@@ -102,6 +82,14 @@ const Dashboard = () => {
   const filteredEmployees = selectedEmployee 
     ? employeeSchoolsData.filter(e => e.id === selectedEmployee) 
     : employeeSchoolsData;
+
+  // Get recent entries for selected employee
+  const recentEntries = selectedEmployee
+    ? workEntries
+        .filter(entry => entry.employeeId === selectedEmployee)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5)
+    : [];
 
   const handleSchoolClick = (schoolId: string) => {
     navigate(`/schools?id=${schoolId}`);
@@ -114,7 +102,7 @@ const Dashboard = () => {
         <p className="text-gray-600">Bienvenido al sistema de gestión de empleados y horas</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Empleados</CardTitle>
@@ -124,19 +112,6 @@ const Dashboard = () => {
             <div className="text-2xl font-bold">{employees.length}</div>
             <p className="text-xs text-gray-500">
               {activeEmployees} activos
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Horas Totales</CardTitle>
-            <Clock className="h-5 w-5 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalHours}</div>
-            <p className="text-xs text-gray-500">
-              {todayHours} horas hoy
             </p>
           </CardContent>
         </Card>
@@ -210,8 +185,8 @@ const Dashboard = () => {
                     <TableRow>
                       <TableHead>Profesor</TableHead>
                       <TableHead>Colegios</TableHead>
-                      <TableHead className="text-right">Horas Mes</TableHead>
-                      <TableHead className="text-right">Horas Total</TableHead>
+                      <TableHead className="text-right">Horas esta Semana</TableHead>
+                      <TableHead className="text-right">Horas Mensuales</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -242,10 +217,10 @@ const Dashboard = () => {
                             </div>
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {employee.monthlyHours}h
+                            {employee.weeklyHours}h
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {employee.totalHours}h
+                            {employee.monthlyHours}h
                           </TableCell>
                         </TableRow>
                       ))
@@ -265,37 +240,46 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Registros Recientes</CardTitle>
+            <CardTitle>
+              {selectedEmployee 
+                ? `Registros de ${employees.find(e => e.id === selectedEmployee)?.name || "Profesor"}`
+                : "Registros Recientes"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {recentEntries.length > 0 ? (
-              <div className="space-y-4">
-                {recentEntries.map((entry) => {
-                  const employee = employees.find(e => e.id === entry.employeeId);
-                  const school = schools.find(s => s.id === entry.schoolId);
-                  
-                  return (
-                    <div key={entry.id} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{employee?.name || "Empleado desconocido"}</p>
-                        <p className="text-sm text-gray-500">
-                          {school?.name || "Colegio desconocido"} • {formatDate(entry.date)}
-                        </p>
+            {selectedEmployee ? (
+              recentEntries.length > 0 ? (
+                <div className="space-y-4">
+                  {recentEntries.map((entry) => {
+                    const school = schools.find(s => s.id === entry.schoolId);
+                    
+                    return (
+                      <div key={entry.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{school?.name || "Colegio desconocido"}</p>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(entry.date)}
+                          </p>
+                        </div>
+                        <div className="text-lg font-medium flex flex-col items-end">
+                          <span>{entry.hours}h</span>
+                          {entry.startTime && entry.endTime && (
+                            <span className="text-xs text-gray-500">
+                              {entry.startTime} - {entry.endTime}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-lg font-medium flex flex-col items-end">
-                        <span>{entry.hours}h</span>
-                        {entry.startTime && entry.endTime && (
-                          <span className="text-xs text-gray-500">
-                            {entry.startTime} - {entry.endTime}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">No hay registros para este profesor</div>
+              )
             ) : (
-              <div className="text-center py-4 text-gray-500">No hay registros recientes</div>
+              <div className="text-center py-4 text-gray-500">
+                Seleccione un profesor para ver sus registros recientes
+              </div>
             )}
             <div className="mt-4 text-center">
               <Link to="/hours" className="text-company-blue hover:underline text-sm">

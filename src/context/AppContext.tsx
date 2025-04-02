@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Employee, School, WorkEntry, EditRecord, Position } from "../types";
+import { Employee, School, WorkEntry, EditRecord, Position, Role } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
@@ -10,6 +10,7 @@ interface AppContextType {
   workEntries: WorkEntry[];
   editRecords: EditRecord[];
   positions: Position[];
+  roles: Role[];
   addEmployee: (employee: Omit<Employee, "id">) => void;
   updateEmployee: (employee: Employee) => void;
   deleteEmployee: (id: string) => void;
@@ -22,6 +23,9 @@ interface AppContextType {
   addPosition: (position: Omit<Position, "id">) => void;
   updatePosition: (position: Position) => void;
   deletePosition: (id: string) => void;
+  addRole: (role: Omit<Role, "id">) => void;
+  updateRole: (role: Role) => void;
+  deleteRole: (id: string) => void;
   getEmployeeById: (id: string) => Employee | undefined;
   getSchoolById: (id: string) => School | undefined;
   getWorkEntriesByEmployeeAndDate: (employeeId: string, date: string) => WorkEntry[];
@@ -52,6 +56,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     { id: "pos-2", name: "Administrativo" },
     { id: "pos-3", name: "Auxiliar" }
   ]);
+  const [roles, setRoles] = useState<Role[]>([
+    { 
+      id: "role-1", 
+      name: "Administrador", 
+      permissions: { 
+        create: true, 
+        read: true, 
+        update: true, 
+        delete: true 
+      } 
+    },
+    { 
+      id: "role-2", 
+      name: "Editor", 
+      permissions: { 
+        create: true, 
+        read: true, 
+        update: true, 
+        delete: false 
+      } 
+    },
+    { 
+      id: "role-3", 
+      name: "Usuario", 
+      permissions: { 
+        create: true, 
+        read: true, 
+        update: false, 
+        delete: false 
+      } 
+    }
+  ]);
+  
   const { toast } = useToast();
 
   const addEmployee = (employee: Omit<Employee, "id">) => {
@@ -75,7 +112,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const employee = employees.find(e => e.id === id);
     setEmployees(employees.filter(e => e.id !== id));
     
-    // Also delete all work entries for this employee
     setWorkEntries(workEntries.filter(entry => entry.employeeId !== id));
     
     toast({
@@ -104,7 +140,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteSchool = (id: string) => {
     const school = schools.find(s => s.id === id);
     
-    // Check if the school is being used in any work entry
     const isSchoolInUse = workEntries.some(entry => entry.schoolId === id);
     
     if (isSchoolInUse) {
@@ -139,11 +174,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateWorkEntry = (entry: WorkEntry, editorName: string) => {
-    // Find the original entry to compare
     const originalEntry = workEntries.find(e => e.id === entry.id);
     
     if (originalEntry && originalEntry.hours !== entry.hours) {
-      // Create an edit record
       const now = new Date();
       const editRecord: EditRecord = {
         id: generateId(),
@@ -156,7 +189,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       setEditRecords([...editRecords, editRecord]);
       
-      // Update the entry with edit information
       const updatedEntry = {
         ...entry,
         lastEditedBy: editorName,
@@ -165,7 +197,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       setWorkEntries(workEntries.map(e => (e.id === entry.id ? updatedEntry : e)));
     } else {
-      // If hours didn't change, just update other fields
       const updatedEntry = {
         ...entry,
         lastEditedBy: editorName,
@@ -206,7 +237,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deletePosition = (id: string) => {
-    // Check if the position is being used by any employee
     const isPositionInUse = employees.some(e => e.position === positions.find(p => p.id === id)?.name);
     
     if (isPositionInUse) {
@@ -224,6 +254,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toast({
       title: "Cargo eliminado",
       description: position ? `${position.name} ha sido eliminado correctamente.` : "Cargo eliminado correctamente"
+    });
+  };
+
+  const addRole = (role: Omit<Role, "id">) => {
+    const newRole = { ...role, id: generateId() };
+    setRoles([...roles, newRole]);
+    toast({
+      title: "Rol agregado",
+      description: `El rol ${newRole.name} ha sido agregado correctamente.`
+    });
+  };
+
+  const updateRole = (role: Role) => {
+    setRoles(roles.map(r => (r.id === role.id ? role : r)));
+    toast({
+      title: "Rol actualizado",
+      description: `El rol ${role.name} ha sido actualizado correctamente.`
+    });
+  };
+
+  const deleteRole = (id: string) => {
+    const role = roles.find(r => r.id === id);
+    
+    const isRoleInUse = employees.some(e => e.role === role?.name);
+    
+    if (isRoleInUse) {
+      toast({
+        title: "Error al eliminar",
+        description: "Este rol no puede ser eliminado porque está siendo utilizado por empleados.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setRoles(roles.filter(r => r.id !== id));
+    toast({
+      title: "Rol eliminado",
+      description: role ? `El rol ${role.name} ha sido eliminado correctamente.` : "Rol eliminado correctamente"
     });
   };
 
@@ -340,7 +408,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const startOfMonth = new Date(year, month, 1);
     const endOfMonth = new Date(year, month + 1, 0);
     
-    // Get all entries for this school in the specified month
     const schoolEntries = workEntries.filter(entry => {
       const entryDate = new Date(entry.date);
       return (
@@ -350,7 +417,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       );
     });
     
-    // Group by employee and sum hours
     const employeeHoursMap = new Map<string, number>();
     
     schoolEntries.forEach(entry => {
@@ -358,14 +424,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       employeeHoursMap.set(entry.employeeId, currentHours + entry.hours);
     });
     
-    // Convert to array of employee objects with hours
     const result = Array.from(employeeHoursMap.entries()).map(([employeeId, hours]) => {
       const employee = employees.find(e => e.id === employeeId);
       return {
         employee: employee!,
         hours
       };
-    }).filter(item => item.employee); // Filter out any undefined employees
+    }).filter(item => item.employee);
     
     return result;
   };
@@ -400,6 +465,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     workEntries,
     editRecords,
     positions,
+    roles,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -412,6 +478,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addPosition,
     updatePosition,
     deletePosition,
+    addRole,
+    updateRole,
+    deleteRole,
     getEmployeeById,
     getSchoolById,
     getWorkEntriesByEmployeeAndDate,
