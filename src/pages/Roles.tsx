@@ -43,6 +43,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const RolesPage = () => {
   const { roles, addRole, updateRole, deleteRole } = useApp();
@@ -221,21 +228,22 @@ const RolesPage = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="role-name">Tipo de Rol</Label>
-              <select
-                id="role-name"
-                value={formData.name}
-                onChange={(e) => 
-                  setFormData({
-                    ...formData,
-                    name: e.target.value as "Administrador" | "Editor" | "Usuario"
-                  })
-                }
-                className="w-full p-2 border rounded"
+              <Select 
+                value={formData.name} 
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  name: value as "Administrador" | "Editor" | "Usuario"
+                })}
               >
-                <option value="Administrador">Administrador</option>
-                <option value="Editor">Editor</option>
-                <option value="Usuario">Usuario</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Administrador">Administrador</SelectItem>
+                  <SelectItem value="Editor">Editor</SelectItem>
+                  <SelectItem value="Usuario">Usuario</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-3">

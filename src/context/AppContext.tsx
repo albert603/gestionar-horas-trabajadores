@@ -1,4 +1,6 @@
 
+// No modificamos el archivo completo por su longitud, solo la parte relevante del login y el manejo de roles
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Employee, School, WorkEntry, EditRecord, Position, Role } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
@@ -165,9 +167,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
     
     if (user) {
-      // Ensure role is set correctly for the user
+      // Asegurarse de que los usuarios tengan el rol correcto según sus credenciales
       if (username === 'admin' && password === 'admin') {
-        // Force the admin user to have the Administrador role
+        // Forzar el rol de Administrador para usuario admin
         const adminUser = {
           ...user,
           role: 'Administrador'
@@ -175,13 +177,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentUser(adminUser);
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', JSON.stringify(adminUser));
+      } else if (username === 'user' && password === 'user') {
+        // Forzar el rol de Usuario para el usuario user
+        const regularUser = {
+          ...user,
+          role: 'Usuario'
+        };
+        setCurrentUser(regularUser);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(regularUser));
       } else {
+        // Para otros usuarios, mantener su rol asignado
         setCurrentUser(user);
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', JSON.stringify(user));
       }
       
-      // Log login action
+      // Registrar acción de inicio de sesión
       const newLog: HistoryLog = {
         id: generateId(),
         action: "create",
