@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils"; // Adding the import for cn utility
 import {
   Table,
   TableBody,
