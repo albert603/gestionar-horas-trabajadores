@@ -277,7 +277,7 @@ const Dashboard = () => {
                         <SelectValue placeholder="Todos los profesores" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos los profesores</SelectItem>
+                        <SelectItem value="_all">Todos los profesores</SelectItem>
                         {employees.map(employee => (
                           <SelectItem key={employee.id} value={employee.id}>
                             {employee.name}
@@ -293,7 +293,7 @@ const Dashboard = () => {
                         <SelectValue placeholder="Todos los colegios" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos los colegios</SelectItem>
+                        <SelectItem value="_all">Todos los colegios</SelectItem>
                         {schools.map(school => (
                           <SelectItem key={school.id} value={school.id}>
                             {school.name}
