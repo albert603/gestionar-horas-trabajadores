@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Employee, School, WorkEntry, EditRecord, Position, Role } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
@@ -64,7 +65,7 @@ export interface HistoryLog {
   details?: string;
 }
 
-// Enhanced initial employees with usernames and passwords
+// Enhanced initial employees with usernames and passwords and fixed admin role
 const enhancedInitialEmployees = [
   ...initialEmployees.map(emp => ({
     ...emp,
@@ -72,7 +73,7 @@ const enhancedInitialEmployees = [
     password: 'password',
     role: 'Usuario'
   })),
-  // Add the admin and user accounts specifically requested
+  // Admin with correct role
   {
     id: 'emp-admin',
     name: 'Juan Perez',
@@ -84,6 +85,7 @@ const enhancedInitialEmployees = [
     password: 'admin',
     role: 'Administrador'
   },
+  // Regular user
   {
     id: 'emp-user',
     name: 'Maria Lopez',
@@ -156,16 +158,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  // Login function
+  // Login function with correct role handling
   const login = (username: string, password: string): boolean => {
     const user = employees.find(e => 
       e.username === username && e.password === password && e.active
     );
     
     if (user) {
-      setCurrentUser(user);
-      setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      // Ensure role is set correctly for the user
+      if (username === 'admin' && password === 'admin') {
+        // Force the admin user to have the Administrador role
+        const adminUser = {
+          ...user,
+          role: 'Administrador'
+        };
+        setCurrentUser(adminUser);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(adminUser));
+      } else {
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      }
       
       // Log login action
       const newLog: HistoryLog = {

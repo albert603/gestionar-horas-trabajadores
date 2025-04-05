@@ -12,19 +12,21 @@ import { LockKeyhole, User } from "lucide-react";
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useApp();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, currentUser } = useApp();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     const success = login(username, password);
     
     if (success) {
       toast({
         title: "Inicio de sesión exitoso",
-        description: "Has iniciado sesión correctamente.",
+        description: `Bienvenido ${currentUser?.role === 'Administrador' ? '(Administrador)' : '(Usuario)'}`,
       });
       navigate("/");
     } else {
@@ -34,6 +36,8 @@ const Login = () => {
         variant: "destructive",
       });
     }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -58,6 +62,7 @@ const Login = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
+                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -73,12 +78,13 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
+                    disabled={isLoading}
                     required
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full">
-                Iniciar Sesión
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
           </CardContent>
@@ -86,6 +92,10 @@ const Login = () => {
             <p className="text-sm text-center text-gray-500">
               Sistema de gestión de horas trabajadas
             </p>
+            <div className="mt-4 text-xs text-center text-gray-400">
+              <p>Admin: admin/admin</p>
+              <p>Usuario: user/user</p>
+            </div>
           </CardFooter>
         </Card>
       </div>

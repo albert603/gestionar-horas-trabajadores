@@ -28,6 +28,7 @@ const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, a
   
   // If roles are specified, check if user has required role
   if (allowedRoles && currentUser?.role && !allowedRoles.includes(currentUser.role)) {
+    console.log('Access denied. User role:', currentUser.role, 'Allowed roles:', allowedRoles);
     return <Navigate to="/" replace />;
   }
   
