@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -180,14 +181,13 @@ export function WorkEntryForm({
                   <User className="h-4 w-4" />
                   <span>Empleado</span>
                 </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "select_employee"}>
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un empleado" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="select_employee" disabled>Seleccione un empleado</SelectItem>
                     {employees.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {employee.name}
@@ -294,14 +294,13 @@ export function WorkEntryForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Colegio</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "select_school"}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccione un colegio" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="select_school" disabled>Seleccione un colegio</SelectItem>
                           {schools.map((school) => (
                             <SelectItem key={school.id} value={school.id}>
                               {school.name}

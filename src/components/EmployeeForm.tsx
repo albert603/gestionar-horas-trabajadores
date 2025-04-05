@@ -103,7 +103,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   <FormLabel>Cargo</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value || "select_position"}
+                    defaultValue={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -111,7 +111,6 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="select_position" disabled>Selecciona un cargo</SelectItem>
                       {positions.map((position) => (
                         <SelectItem key={position.id} value={position.name}>
                           {position.name}
@@ -135,7 +134,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   </FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value || "no_role"}
+                    defaultValue={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
