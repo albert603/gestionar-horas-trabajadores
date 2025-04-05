@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -391,45 +390,36 @@ const Schools = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-md border">
-              <div className="p-4 border-b">
-                <h3 className="font-medium flex items-center">
-                  <CalendarRange className="h-5 w-5 mr-2" />
-                  Informe Mensual de Colegios
-                </h3>
-              </div>
-              
-              {monthlyReportData.length > 0 ? (
-                <div className="divide-y">
-                  {monthlyReportData.map((schoolData: any, index) => (
-                    <div key={index} className="p-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="font-medium">{schoolData.schoolName}</h4>
-                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm">
-                          {schoolData.totalHours} horas
-                        </span>
-                      </div>
-                      
-                      <div className="ml-4 mt-2">
-                        <h5 className="text-sm text-gray-500 mb-2">Profesores:</h5>
-                        <div className="space-y-2">
-                          {Object.values(schoolData.employees).map((employeeData: any, idx: number) => (
-                            <div key={idx} className="flex justify-between text-sm">
-                              <span>{employeeData.employeeName}</span>
-                              <span>{employeeData.hours} horas</span>
-                            </div>
-                          ))}
-                        </div>
+            {monthlyReportData.length > 0 ? (
+              <div className="divide-y">
+                {monthlyReportData.map((schoolData: any, index) => (
+                  <div key={index} className="p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium">{schoolData.schoolName}</h4>
+                      <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm">
+                        {schoolData.totalHours} horas
+                      </span>
+                    </div>
+                    
+                    <div className="ml-4 mt-2">
+                      <h5 className="text-sm text-gray-500 mb-2">Profesores:</h5>
+                      <div className="space-y-2">
+                        {Object.values(schoolData.employees).map((employeeData: any, idx: number) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span>{employeeData.employeeName}</span>
+                            <span>{employeeData.hours} horas</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-gray-500">
-                  No hay datos disponibles para el mes seleccionado
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                No hay datos disponibles para el mes seleccionado
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
