@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Employee, School, WorkEntry, EditRecord, Position, Role } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,6 +11,10 @@ interface AppContextType {
   editRecords: EditRecord[];
   positions: Position[];
   roles: Role[];
+  isAuthenticated: boolean;
+  currentUser: Employee | null;
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
   addEmployee: (employee: Omit<Employee, "id">) => void;
   updateEmployee: (employee: Employee) => void;
   deleteEmployee: (id: string) => void;
@@ -60,8 +64,41 @@ export interface HistoryLog {
   details?: string;
 }
 
+// Enhanced initial employees with usernames and passwords
+const enhancedInitialEmployees = [
+  ...initialEmployees.map(emp => ({
+    ...emp,
+    username: emp.name.toLowerCase().replace(' ', ''),
+    password: 'password',
+    role: 'Usuario'
+  })),
+  // Add the admin and user accounts specifically requested
+  {
+    id: 'emp-admin',
+    name: 'Juan Perez',
+    position: 'Administrador',
+    phone: '123-456-7890',
+    email: 'juan@example.com',
+    active: true,
+    username: 'admin',
+    password: 'admin',
+    role: 'Administrador'
+  },
+  {
+    id: 'emp-user',
+    name: 'Maria Lopez',
+    position: 'Usuario',
+    phone: '098-765-4321',
+    email: 'maria@example.com',
+    active: true,
+    username: 'user',
+    password: 'user',
+    role: 'Usuario'
+  }
+];
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const [employees, setEmployees] = useState<Employee[]>(enhancedInitialEmployees);
   const [schools, setSchools] = useState<School[]>(initialSchools);
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>(initialWorkEntries);
   const [editRecords, setEditRecords] = useState<EditRecord[]>([]);
@@ -102,13 +139,94 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } 
     }
   ]);
+  
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   
   const { toast } = useToast();
 
+  // Check for stored authentication on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Login function
+  const login = (username: string, password: string): boolean => {
+    const user = employees.find(e => 
+      e.username === username && e.password === password && e.active
+    );
+    
+    if (user) {
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      
+      // Log login action
+      const newLog: HistoryLog = {
+        id: generateId(),
+        action: "create",
+        entityType: "employee",
+        entityId: user.id,
+        entityName: user.name,
+        performedBy: user.name,
+        timestamp: new Date().toISOString(),
+        details: "Inicio de sesión"
+      };
+      
+      setHistoryLogs([newLog, ...historyLogs]);
+      
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Logout function
+  const logout = () => {
+    if (currentUser) {
+      // Log logout action
+      const newLog: HistoryLog = {
+        id: generateId(),
+        action: "update",
+        entityType: "employee",
+        entityId: currentUser.id,
+        entityName: currentUser.name,
+        performedBy: currentUser.name,
+        timestamp: new Date().toISOString(),
+        details: "Cierre de sesión"
+      };
+      
+      setHistoryLogs([newLog, ...historyLogs]);
+    }
+    
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('currentUser');
+  };
+
+  // Modify addEmployee to ensure it has username and password
   const addEmployee = (employee: Omit<Employee, "id">) => {
-    const newEmployee = { ...employee, id: generateId(), active: true };
+    const username = employee.username || employee.name.toLowerCase().replace(' ', '');
+    const password = employee.password || 'password';
+    
+    const newEmployee = { 
+      ...employee, 
+      id: generateId(), 
+      active: true,
+      username,
+      password,
+      role: employee.role || 'Usuario'
+    };
+    
     setEmployees([...employees, newEmployee]);
+    
+    const performer = currentUser?.name || "Sistema";
     
     const newLog: HistoryLog = {
       id: generateId(),
@@ -116,7 +234,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "employee",
       entityId: newEmployee.id,
       entityName: newEmployee.name,
-      performedBy: "Usuario",
+      performedBy: performer,
       timestamp: new Date().toISOString(),
       details: "Empleado creado"
     };
@@ -132,13 +250,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updateEmployee = (employee: Employee) => {
     setEmployees(employees.map(e => (e.id === employee.id ? employee : e)));
     
+    // If updating the current user, update the currentUser state and localStorage
+    if (currentUser && employee.id === currentUser.id) {
+      setCurrentUser(employee);
+      localStorage.setItem('currentUser', JSON.stringify(employee));
+    }
+    
+    const performer = currentUser?.name || "Sistema";
+    
     const newLog: HistoryLog = {
       id: generateId(),
       action: "update",
       entityType: "employee",
       entityId: employee.id,
       entityName: employee.name,
-      performedBy: "Usuario",
+      performedBy: performer,
       timestamp: new Date().toISOString(),
       details: "Empleado actualizado"
     };
@@ -163,7 +289,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "employee",
       entityId: id,
       entityName: employee?.name,
-      performedBy: "Usuario",
+      performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
       details: "Empleado eliminado"
     };
@@ -179,6 +305,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addSchool = (school: Omit<School, "id">) => {
     const newSchool = { ...school, id: generateId() };
     setSchools([...schools, newSchool]);
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "create",
+      entityType: "school",
+      entityId: newSchool.id,
+      entityName: newSchool.name,
+      performedBy: currentUser?.name || "Sistema",
+      timestamp: new Date().toISOString(),
+      details: "Colegio creado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Colegio agregado",
       description: `${newSchool.name} ha sido agregado correctamente.`
@@ -187,6 +327,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateSchool = (school: School) => {
     setSchools(schools.map(s => (s.id === school.id ? school : s)));
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "update",
+      entityType: "school",
+      entityId: school.id,
+      entityName: school.name,
+      performedBy: currentUser?.name || "Sistema",
+      timestamp: new Date().toISOString(),
+      details: "Colegio actualizado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Colegio actualizado",
       description: `${school.name} ha sido actualizado correctamente.`
@@ -215,7 +369,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "school",
       entityId: id,
       entityName: school?.name,
-      performedBy: "Usuario",
+      performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
       details: "Colegio eliminado"
     };
@@ -244,7 +398,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "school",
       entityId: id,
       entityName: school?.name,
-      performedBy: "Usuario",
+      performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
       details: `Colegio eliminado con ${relatedEntries.length} registros de horas`
     };
@@ -262,7 +416,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newEntry = { 
       ...entry, 
       id: generateId(),
-      lastEditedBy: "Usuario",
+      lastEditedBy: currentUser?.name || "Sistema",
       lastEditedAt: now.toISOString()
     };
     setWorkEntries([...workEntries, newEntry]);
@@ -276,7 +430,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "workEntry",
       entityId: newEntry.id,
       entityName: `${employee?.name || "Desconocido"} - ${school?.name || "Desconocido"}`,
-      performedBy: "Usuario",
+      performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
       details: `Registro de ${newEntry.hours} horas creado`
     };
@@ -327,7 +481,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "workEntry",
       entityId: entry.id,
       entityName: `${getEmployeeById(entry.employeeId)?.name || "Desconocido"} - ${getSchoolById(entry.schoolId)?.name || "Desconocido"}`,
-      performedBy: "Usuario",
+      performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
       details: "Registro actualizado"
     };
@@ -348,7 +502,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityType: "workEntry",
       entityId: id,
       entityName: "Desconocido",
-      performedBy: "Usuario",
+      performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
       details: "Registro eliminado"
     };
@@ -634,6 +788,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     editRecords,
     positions,
     roles,
+    isAuthenticated,
+    currentUser,
+    login,
+    logout,
     addEmployee,
     updateEmployee,
     deleteEmployee,

@@ -3,19 +3,56 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppProvider } from "@/context/AppContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AppProvider, useApp } from "@/context/AppContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Hours from "./pages/Hours";
 import Schools from "./pages/Schools";
 import Positions from "./pages/Positions";
 import Roles from "./pages/Roles";
-import History from "./pages/History"; // Nueva página de historial
+import History from "./pages/History";
 import SchoolMonthlyReport from "./pages/SchoolMonthlyReport";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
+
+// Protected route component
+const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, allowedRoles?: string[] }) => {
+  const { isAuthenticated, currentUser } = useApp();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // If roles are specified, check if user has required role
+  if (allowedRoles && currentUser?.role && !allowedRoles.includes(currentUser.role)) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{element}</>;
+};
+
+// Routes configuration with role-based access
+const AppRoutes = () => {
+  const { isAuthenticated } = useApp();
+  
+  return (
+    <Routes>
+      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/" element={<ProtectedRoute element={<Index />} />} />
+      <Route path="/employees" element={<ProtectedRoute element={<Employees />} allowedRoles={["Administrador"]} />} />
+      <Route path="/hours" element={<ProtectedRoute element={<Hours />} />} />
+      <Route path="/schools" element={<ProtectedRoute element={<Schools />} allowedRoles={["Administrador"]} />} />
+      <Route path="/positions" element={<ProtectedRoute element={<Positions />} allowedRoles={["Administrador"]} />} />
+      <Route path="/roles" element={<ProtectedRoute element={<Roles />} allowedRoles={["Administrador"]} />} />
+      <Route path="/history" element={<ProtectedRoute element={<History />} allowedRoles={["Administrador"]} />} />
+      <Route path="/school-report" element={<ProtectedRoute element={<SchoolMonthlyReport />} allowedRoles={["Administrador"]} />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -24,17 +61,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/hours" element={<Hours />} />
-            <Route path="/schools" element={<Schools />} />
-            <Route path="/positions" element={<Positions />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/history" element={<History />} /> {/* Nueva ruta */}
-            <Route path="/school-report" element={<SchoolMonthlyReport />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </AppProvider>
     </TooltipProvider>
