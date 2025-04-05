@@ -82,7 +82,12 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
         <div className="px-3 py-4 overflow-y-auto">
           <ul className="space-y-2">
             <li>
-              <NavItem to="/" icon={<Home className="w-5 h-5" />} label="Dashboard" end />
+              <NavItem 
+                to="/" 
+                icon={<Home className="w-5 h-5" />} 
+                label={isAdmin ? "Dashboard" : "Mis Horas"} 
+                end 
+              />
             </li>
             {isAdmin && (
               <li>
