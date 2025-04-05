@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import {
@@ -49,20 +48,27 @@ const Hours = () => {
     getTotalHoursByEmployeeThisYear,
     getEditRecordsByWorkEntry,
     getTotalHoursForEmployeeByDay,
-    getTotalHoursForEmployeeByWeek
+    getTotalHoursForEmployeeByWeek,
+    currentUser
   } = useApp();
   
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const isAdmin = currentUser?.role === "Administrador";
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(currentUser?.id || "");
+  const [editorName, setEditorName] = useState<string>(currentUser?.name || "Usuario");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<any>(null);
-  const [editorName, setEditorName] = useState<string>("Usuario");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(dateStartOfWeek(new Date(), { weekStartsOn: 1 }));
   const [weekOffset, setWeekOffset] = useState(0);
   
-  // Calculate hours by school for selected employee
+  useEffect(() => {
+    if (!isAdmin && currentUser) {
+      setSelectedEmployeeId(currentUser.id);
+    }
+  }, [currentUser, isAdmin]);
+  
   const hoursBySchool = React.useMemo(() => {
     if (!selectedEmployeeId) return [];
     
@@ -70,7 +76,6 @@ const Hours = () => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     
-    // Get all entries for this employee in this month
     const employeeEntries = workEntries.filter(entry => {
       const entryDate = new Date(entry.date);
       return (
@@ -80,7 +85,6 @@ const Hours = () => {
       );
     });
     
-    // Group by school and sum hours
     const schoolHoursMap = new Map<string, number>();
     
     employeeEntries.forEach(entry => {
@@ -88,7 +92,6 @@ const Hours = () => {
       schoolHoursMap.set(entry.schoolId, currentHours + entry.hours);
     });
     
-    // Convert to array of objects with school details
     return Array.from(schoolHoursMap.entries()).map(([schoolId, hours]) => {
       const school = getSchoolById(schoolId);
       return {
@@ -99,7 +102,6 @@ const Hours = () => {
     }).sort((a, b) => b.hours - a.hours);
   }, [selectedEmployeeId, workEntries, getSchoolById]);
   
-  // Filter entries by selected employee
   const filteredEntries = selectedEmployeeId
     ? workEntries.filter(entry => entry.employeeId === selectedEmployeeId)
     : workEntries;
@@ -108,12 +110,9 @@ const Hours = () => {
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // For weekly view
   const weekDates = React.useMemo(() => {
-    // Adjust current week based on offset
     const baseDate = addWeeks(currentWeekStart, weekOffset);
     
-    // Generate dates for the entire week (Monday to Sunday)
     return Array.from({ length: 7 }).map((_, i) => {
       const date = addDays(baseDate, i);
       return format(date, 'yyyy-MM-dd');
@@ -129,11 +128,12 @@ const Hours = () => {
   };
   
   const handleAddSubmit = (data: any) => {
-    // Handle multiple entries if provided
+    const employeeId = isAdmin ? data.employeeId : currentUser?.id || "";
+    
     if (data.entries) {
       data.entries.forEach(entry => {
         addWorkEntry({
-          employeeId: data.employeeId,
+          employeeId,
           schoolId: entry.schoolId,
           date: data.date.toISOString().split('T')[0],
           hours: entry.hours,
@@ -144,9 +144,8 @@ const Hours = () => {
         });
       });
     } else {
-      // Handle single entry
       addWorkEntry({
-        employeeId: data.employeeId,
+        employeeId,
         schoolId: data.schoolId,
         date: data.date.toISOString().split('T')[0],
         hours: data.hours,
@@ -161,13 +160,13 @@ const Hours = () => {
 
   const handleEditSubmit = (data: any) => {
     if (currentEntry) {
-      // Handle multiple entries if provided
+      const employeeId = isAdmin ? (data.employeeId || currentEntry.employeeId) : currentUser?.id || "";
+      
       if (data.entries) {
-        // Currently we only support editing one entry at a time
         const entry = data.entries[0];
         updateWorkEntry({
           id: currentEntry.id,
-          employeeId: data.employeeId || currentEntry.employeeId,
+          employeeId,
           schoolId: entry.schoolId,
           date: data.date.toISOString().split('T')[0],
           hours: entry.hours,
@@ -177,10 +176,9 @@ const Hours = () => {
           lastEditedAt: currentEntry.lastEditedAt
         }, editorName);
       } else {
-        // Handle single entry
         updateWorkEntry({
           id: currentEntry.id,
-          employeeId: data.employeeId || currentEntry.employeeId,
+          employeeId,
           schoolId: data.schoolId,
           date: data.date.toISOString().split('T')[0],
           hours: data.hours,
@@ -218,7 +216,6 @@ const Hours = () => {
     setIsHistoryDialogOpen(true);
   };
 
-  // Function to get the hours for a specific employee on a specific date
   const getHoursForDate = (employeeId: string, date: string) => {
     return workEntries
       .filter(entry => entry.employeeId === employeeId && entry.date === date)
@@ -228,20 +225,16 @@ const Hours = () => {
       }));
   };
 
-  // Format date for display
   const formatEditDate = (dateString: string) => {
     const date = new Date(dateString);
     return format(date, "dd/MM/yyyy HH:mm");
   };
 
-  // Get today's hours
   const today = new Date().toISOString().split('T')[0];
   const todayHours = selectedEmployeeId ? getTotalHoursForEmployeeByDay(selectedEmployeeId, today) : 0;
   
-  // Get this week's hours
   const thisWeekHours = selectedEmployeeId ? getTotalHoursForEmployeeByWeek(selectedEmployeeId) : 0;
   
-  // Format the week range for display
   const weekRangeDisplay = () => {
     const startDate = new Date(weekDates[0]);
     const endDate = new Date(weekDates[6]);
@@ -262,39 +255,44 @@ const Hours = () => {
       </div>
 
       <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="w-full md:w-1/2">
-          <label htmlFor="employee-select" className="block text-sm font-medium text-gray-700 mb-1">
-            Seleccionar Empleado
-          </label>
-          <Select
-            value={selectedEmployeeId}
-            onValueChange={setSelectedEmployeeId}
-          >
-            <SelectTrigger id="employee-select" className="w-full">
-              <SelectValue placeholder="Selecciona un empleado" />
-            </SelectTrigger>
-            <SelectContent>
-              {employees.map((employee) => (
-                <SelectItem key={employee.id} value={employee.id}>
-                  {employee.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-full md:w-1/2">
-          <label htmlFor="editor-name" className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre del Editor
-          </label>
-          <input
-            type="text"
-            id="editor-name"
-            value={editorName}
-            onChange={(e) => setEditorName(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2"
-            placeholder="Nombre del editor"
-          />
-        </div>
+        {isAdmin && (
+          <div className="w-full md:w-1/2">
+            <label htmlFor="employee-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Seleccionar Empleado
+            </label>
+            <Select
+              value={selectedEmployeeId}
+              onValueChange={setSelectedEmployeeId}
+            >
+              <SelectTrigger id="employee-select" className="w-full">
+                <SelectValue placeholder="Selecciona un empleado" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {isAdmin && (
+          <div className="w-full md:w-1/2">
+            <label htmlFor="editor-name" className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre del Editor
+            </label>
+            <input
+              type="text"
+              id="editor-name"
+              value={editorName}
+              onChange={(e) => setEditorName(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2"
+              placeholder="Nombre del editor"
+            />
+          </div>
+        )}
       </div>
 
       {selectedEmployeeId && (
@@ -546,7 +544,6 @@ const Hours = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add Hours Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -558,11 +555,11 @@ const Hours = () => {
           <WorkEntryForm
             schools={schools}
             initialData={currentEntry && currentEntry.date ? {
-              employeeId: currentEntry.employeeId || selectedEmployeeId,
+              employeeId: isAdmin ? (currentEntry.employeeId || selectedEmployeeId) : currentUser?.id,
               date: currentEntry.date,
               hours: 0
             } : { 
-              employeeId: selectedEmployeeId 
+              employeeId: isAdmin ? selectedEmployeeId : currentUser?.id 
             }}
             onSubmit={handleAddSubmit}
             onCancel={() => {
@@ -571,12 +568,11 @@ const Hours = () => {
                 setCurrentEntry(null);
               }
             }}
-            hideEmployeeSelect={!!selectedEmployeeId && !currentEntry}
+            hideEmployeeSelect={!isAdmin}
           />
         </DialogContent>
       </Dialog>
 
-      {/* Edit Hours Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -604,7 +600,6 @@ const Hours = () => {
         </DialogContent>
       </Dialog>
 
-      {/* History Dialog */}
       <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -675,7 +670,6 @@ const Hours = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
