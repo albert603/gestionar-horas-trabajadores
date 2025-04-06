@@ -14,21 +14,21 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useApp();
+  const { login, currentUser } = useApp();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const success = login(username, password);
+      const success = await login(username, password);
       
       if (success) {
         toast({
           title: "Inicio de sesión exitoso",
-          description: "Bienvenido al sistema",
+          description: `Bienvenido ${currentUser?.role === 'Administrador' ? '(Administrador)' : '(Usuario)'}`,
         });
         navigate("/");
       } else {

@@ -11,7 +11,7 @@ export interface AppContextType {
   roles: Role[];
   isAuthenticated: boolean;
   currentUser: Employee | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   addEmployee: (employee: Omit<Employee, "id">) => void;
   updateEmployee: (employee: Employee) => void;

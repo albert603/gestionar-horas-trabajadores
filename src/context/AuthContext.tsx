@@ -1,11 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Employee } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   currentUser: Employee | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -19,34 +21,86 @@ export const AuthProvider: React.FC<{
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
 
+  // Check for existing session on component mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    const checkSession = async () => {
       try {
-        const user = JSON.parse(savedUser);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          
+          // Verify the user still exists in the database
+          const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('id', user.id)
+            .eq('active', true)
+            .single();
+          
+          if (error || !data) {
+            console.log("User no longer exists or is inactive:", error);
+            // Clear invalid session
+            localStorage.removeItem('currentUser');
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            return;
+          }
+          
+          // Update local state with the latest user data from DB
+          setCurrentUser(data);
+          setIsAuthenticated(true);
+        }
       } catch (e) {
-        console.error("Error parsing saved user", e);
+        console.error("Error checking session:", e);
         localStorage.removeItem('currentUser');
+        setCurrentUser(null);
+        setIsAuthenticated(false);
       }
-    }
+    };
+    
+    checkSession();
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    const user = employees.find(e => 
-      e.username === username && 
-      e.password === password &&
-      e.active === true
-    );
-    
-    if (user) {
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      // First check if user exists in the local data
+      const user = employees.find(e => 
+        e.username === username && 
+        e.password === password &&
+        e.active === true
+      );
+      
+      if (!user) {
+        return false;
+      }
+      
+      // Verify against database that user still exists and is active
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('username', username)
+        .eq('active', true)
+        .single();
+      
+      if (error || !data) {
+        console.log("User verification failed:", error);
+        toast({
+          title: "Error de autenticación",
+          description: "Este usuario ya no existe o ha sido desactivado.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // If database validation passes, proceed with login
       setCurrentUser(user);
       setIsAuthenticated(true);
       localStorage.setItem('currentUser', JSON.stringify(user));
       return true;
+    } catch (error) {
+      console.error("Login error:", error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
