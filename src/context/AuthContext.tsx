@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{
 
   // Check for existing session on component mount
   useEffect(() => {
-    const checkSession = async () => {
+    const checkSession = () => {
       try {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -42,6 +42,8 @@ export const AuthProvider: React.FC<{
           // Set the authenticated user from local data instead of database
           setCurrentUser(foundUser);
           setIsAuthenticated(true);
+          
+          console.log("Session restored successfully:", foundUser.name);
         }
       } catch (e) {
         console.error("Error checking session:", e);
@@ -64,18 +66,20 @@ export const AuthProvider: React.FC<{
       );
       
       if (!user) {
-        toast({
-          title: "Error de autenticación",
-          description: "Usuario o contraseña incorrectos.",
-          variant: "destructive",
-        });
+        console.log("Login failed: Invalid credentials or inactive user");
         return false;
       }
       
       // Login successful with local data
+      console.log("Login successful for user:", user.name);
+      
+      // First update the state
       setCurrentUser(user);
       setIsAuthenticated(true);
+      
+      // Then save to localStorage
       localStorage.setItem('currentUser', JSON.stringify(user));
+      
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -84,6 +88,7 @@ export const AuthProvider: React.FC<{
   };
 
   const logout = () => {
+    console.log("Logging out user:", currentUser?.name);
     setCurrentUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('currentUser');

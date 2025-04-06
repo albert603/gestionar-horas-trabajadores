@@ -14,7 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login, currentUser } = useApp();
+  const { login } = useApp();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -28,7 +28,7 @@ const Login = () => {
       if (success) {
         toast({
           title: "Inicio de sesión exitoso",
-          description: `Bienvenido ${currentUser?.role === 'Administrador' ? '(Administrador)' : '(Usuario)'}`,
+          description: "Redirigiendo al panel principal...",
         });
         navigate("/");
       } else {

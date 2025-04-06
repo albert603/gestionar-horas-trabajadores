@@ -13,31 +13,40 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, currentUser } = useApp();
+  const { login } = useApp();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    const success = login(username, password);
-    
-    if (success) {
+    try {
+      const success = await login(username, password);
+      
+      if (success) {
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: "Redirigiendo al panel principal...",
+        });
+        navigate("/");
+      } else {
+        toast({
+          title: "Error de inicio de sesión",
+          description: "Usuario o contraseña incorrectos.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
       toast({
-        title: "Inicio de sesión exitoso",
-        description: `Bienvenido ${currentUser?.role === 'Administrador' ? '(Administrador)' : '(Usuario)'}`,
-      });
-      navigate("/");
-    } else {
-      toast({
-        title: "Error de inicio de sesión",
-        description: "Usuario o contraseña incorrectos.",
+        title: "Error del sistema",
+        description: "Ocurrió un error al procesar su solicitud.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
