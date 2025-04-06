@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -13,7 +12,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Pencil, Trash2, BarChart3, Users, CalendarRange, ChevronDown, ChevronUp } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, BarChart3, Users, CalendarRange, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -109,10 +108,12 @@ const Schools = () => {
 
   const handleDelete = () => {
     if (currentSchool) {
-      deleteSchool(currentSchool.id);
+      const success = deleteSchool(currentSchool.id);
+      if (success !== false) {
+        setIsDeleteDialogOpen(false);
+        setCurrentSchool(null);
+      }
     }
-    setIsDeleteDialogOpen(false);
-    setCurrentSchool(null);
   };
 
   const handleForceDelete = () => {
@@ -143,6 +144,10 @@ const Schools = () => {
       ...prev,
       [schoolId]: !prev[schoolId]
     }));
+  };
+
+  const hasWorkEntries = (schoolId: string) => {
+    return workEntries.some(entry => entry.schoolId === schoolId);
   };
 
   const generateMonthOptions = () => {
@@ -285,7 +290,14 @@ const Schools = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => openDeleteDialog(school)}>
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteDialog(school)}
+                                className={hasWorkEntries(school.id) ? "text-gray-400 cursor-not-allowed" : ""}
+                                disabled={hasWorkEntries(school.id)}
+                              >
+                                {hasWorkEntries(school.id) && (
+                                  <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
+                                )}
                                 Eliminar
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openForceDeleteDialog(school)}>
@@ -464,15 +476,24 @@ const Schools = () => {
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminará permanentemente este colegio.
-              <br />
-              <strong className="text-red-500">
-                Nota: No se puede eliminar un colegio que tenga registros de horas asociados.
-              </strong>
+              {currentSchool && hasWorkEntries(currentSchool.id) && (
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-700 flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium">No se puede eliminar este colegio</p>
+                    <p className="text-sm">Este colegio tiene registros de horas asociados. Para eliminarlo, usa la opción "Eliminar y restablecer" que también eliminará todos los registros de horas.</p>
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className={`bg-red-600 hover:bg-red-700 ${hasWorkEntries(currentSchool?.id || '') ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={currentSchool && hasWorkEntries(currentSchool.id)}
+            >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
