@@ -13,38 +13,14 @@ export const initialEmployees: Employee[] = [
     username: "admin",
     password: "admin",
     role: "Administrador"
-  },
-  {
-    id: "2",
-    name: "Usuario Regular",
-    position: "Profesor",
-    phone: "123-456-7891",
-    email: "user@example.com",
-    active: true,
-    username: "user",
-    password: "user",
-    role: "Usuario"
   }
 ];
 
-export const initialSchools: School[] = [
-  {
-    id: "1",
-    name: "Escuela San José"
-  },
-  {
-    id: "2",
-    name: "Colegio Santa María"
-  }
-];
+export const initialSchools: School[] = [];
 
 export const initialPositions: Position[] = [
   {
     id: "1",
-    name: "Profesor"
-  },
-  {
-    id: "2",
     name: "Administrador"
   }
 ];
@@ -62,16 +38,6 @@ export const initialRoles: Role[] = [
   },
   {
     id: "2",
-    name: "Editor",
-    permissions: {
-      create: true,
-      read: true,
-      update: true,
-      delete: false
-    }
-  },
-  {
-    id: "3",
     name: "Usuario",
     permissions: {
       create: true,
