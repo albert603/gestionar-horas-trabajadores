@@ -29,25 +29,19 @@ export const AuthProvider: React.FC<{
         if (savedUser) {
           const user = JSON.parse(savedUser);
           
-          // Verify the user still exists in the database
-          const { data, error } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('id', user.id)
-            .eq('active', true)
-            .single();
+          // Find the user in the local employees array
+          const foundUser = employees.find(emp => emp.id === user.id && emp.active === true);
           
-          if (error || !data) {
-            console.log("User no longer exists or is inactive:", error);
-            // Clear invalid session
+          if (!foundUser) {
+            console.log("User no longer exists or is inactive in local data");
             localStorage.removeItem('currentUser');
             setCurrentUser(null);
             setIsAuthenticated(false);
             return;
           }
           
-          // Update local state with the latest user data from DB
-          setCurrentUser(data);
+          // Set the authenticated user from local data instead of database
+          setCurrentUser(foundUser);
           setIsAuthenticated(true);
         }
       } catch (e) {
@@ -59,7 +53,7 @@ export const AuthProvider: React.FC<{
     };
     
     checkSession();
-  }, []);
+  }, [employees]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
@@ -71,28 +65,15 @@ export const AuthProvider: React.FC<{
       );
       
       if (!user) {
-        return false;
-      }
-      
-      // Verify against database that user still exists and is active
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('username', username)
-        .eq('active', true)
-        .single();
-      
-      if (error || !data) {
-        console.log("User verification failed:", error);
         toast({
           title: "Error de autenticación",
-          description: "Este usuario ya no existe o ha sido desactivado.",
+          description: "Usuario o contraseña incorrectos.",
           variant: "destructive",
         });
         return false;
       }
       
-      // If database validation passes, proceed with login
+      // Login successful with local data
       setCurrentUser(user);
       setIsAuthenticated(true);
       localStorage.setItem('currentUser', JSON.stringify(user));
