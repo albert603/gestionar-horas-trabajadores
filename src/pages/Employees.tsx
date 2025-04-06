@@ -30,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmployeeForm } from "@/components/EmployeeForm";
 import { Employee } from "@/types";
-import { Pencil, Trash2, UserPlus, Mail, Phone, Shield } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Mail, Phone, Shield, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -89,6 +89,14 @@ const Employees = () => {
       default:
         return "default";
     }
+  };
+
+  // Verificar si un empleado es el único administrador
+  const isLastAdmin = (employee: Employee) => {
+    if (employee.role !== "Administrador") return false;
+    
+    const adminEmployees = employees.filter(e => e.role === "Administrador");
+    return adminEmployees.length <= 1;
   };
 
   return (
@@ -166,6 +174,9 @@ const Employees = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => openDeleteDialog(employee)}
+                          disabled={isLastAdmin(employee)}
+                          className={isLastAdmin(employee) ? "text-gray-400 cursor-not-allowed" : "text-red-500 hover:text-red-600"}
+                          title={isLastAdmin(employee) ? "No se puede eliminar el único administrador" : "Eliminar empleado"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -228,6 +239,12 @@ const Employees = () => {
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminará permanentemente a{" "}
               <strong>{currentEmployee?.name}</strong> del sistema y todos sus registros de horas.
+              {currentEmployee && currentEmployee.role === "Administrador" && (
+                <div className="mt-2 flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Atención: Estás eliminando a un usuario con permisos de administrador.</span>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -289,6 +289,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteEmployee = (id: string) => {
     const employee = employees.find(e => e.id === id);
     
+    if (employee?.role === "Administrador") {
+      const adminEmployees = employees.filter(e => e.role === "Administrador");
+      
+      if (adminEmployees.length <= 1) {
+        toast({
+          title: "No se puede eliminar",
+          description: "No se puede eliminar el único empleado con rol de Administrador. Debe existir al menos un administrador en el sistema.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setEmployees(employees.filter(e => e.id !== id));
     
     setWorkEntries(workEntries.filter(entry => entry.employeeId !== id));
