@@ -15,6 +15,9 @@ export interface HistoryLog {
   description: string;
   timestamp: string;
   performedBy: string;
+  entityType?: string;
+  entityName?: string;
+  details?: string;
 }
 
 interface AppContextType {
@@ -177,7 +180,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       action,
       description,
       timestamp: new Date().toISOString(),
-      performedBy
+      performedBy,
+      entityType: action.toLowerCase(),
     };
     setHistoryLogs(prev => [newLog, ...prev]);
   };
