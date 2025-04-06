@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      edit_records: {
+        Row: {
+          edited_at: string
+          edited_by: string
+          id: string
+          new_hours: number
+          previous_hours: number
+          work_entry_id: string
+        }
+        Insert: {
+          edited_at?: string
+          edited_by: string
+          id?: string
+          new_hours: number
+          previous_hours: number
+          work_entry_id: string
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string
+          id?: string
+          new_hours?: number
+          previous_hours?: number
+          work_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_records_work_entry_id_fkey"
+            columns: ["work_entry_id"]
+            isOneToOne: false
+            referencedRelation: "work_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           active: boolean | null
@@ -48,6 +83,39 @@ export type Database = {
         }
         Relationships: []
       }
+      history_logs: {
+        Row: {
+          action: string
+          description: string
+          details: string | null
+          entity_name: string | null
+          entity_type: string | null
+          id: string
+          performed_by: string
+          timestamp: string
+        }
+        Insert: {
+          action: string
+          description: string
+          details?: string | null
+          entity_name?: string | null
+          entity_type?: string | null
+          id?: string
+          performed_by: string
+          timestamp?: string
+        }
+        Update: {
+          action?: string
+          description?: string
+          details?: string | null
+          entity_name?: string | null
+          entity_type?: string | null
+          id?: string
+          performed_by?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       schools: {
         Row: {
           created_at: string | null
@@ -66,12 +134,79 @@ export type Database = {
         }
         Relationships: []
       }
+      work_entries: {
+        Row: {
+          created_at: string
+          date: string
+          employee_id: string
+          end_time: string | null
+          hours: number
+          id: string
+          last_edited_at: string | null
+          last_edited_by: string | null
+          school_id: string
+          start_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          employee_id: string
+          end_time?: string | null
+          hours: number
+          id?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          school_id: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee_id?: string
+          end_time?: string | null
+          hours?: number
+          id?: string
+          last_edited_at?: string | null
+          last_edited_by?: string | null
+          school_id?: string
+          start_time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_entries_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_history_log: {
+        Args: {
+          action: string
+          description: string
+          entity_type?: string
+          entity_name?: string
+          details?: string
+          performed_by?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

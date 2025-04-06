@@ -61,15 +61,47 @@ const DashboardSummary = () => {
         
         setSchoolsCount(schools?.length || 0);
         
-        // Calculate total hours (placeholder - would need a work_entries table)
-        // This is just a placeholder as we don't have actual work entries yet
-        setHoursCount(0);
+        // Fetch total hours from work_entries
+        const { data: workEntries, error: workEntriesError } = await supabase
+          .from('work_entries')
+          .select('hours') as { data: any[], error: any };
+        
+        if (workEntriesError) {
+          throw new Error(`Error al obtener horas trabajadas: ${workEntriesError.message}`);
+        }
+        
+        // Calculate total hours from work_entries
+        const totalHours = workEntries?.reduce((total, entry) => total + parseFloat(entry.hours), 0) || 0;
+        setHoursCount(totalHours);
       } else {
-        // For regular users, we'll only show their assigned schools
-        // This would connect to a work_entries or assignments table
-        // For now, just set schools to 0 until we have that table
-        setSchoolsCount(0);
-        setHoursCount(0);
+        // For regular users, fetch their assigned schools and hours
+        if (currentUser) {
+          // Fetch schools assigned to the user
+          const { data: userSchools, error: userSchoolsError } = await supabase
+            .from('work_entries')
+            .select('school_id')
+            .eq('employee_id', currentUser.id)
+            .distinct() as { data: any[], error: any };
+          
+          if (userSchoolsError) {
+            throw new Error(`Error al obtener colegios del usuario: ${userSchoolsError.message}`);
+          }
+          
+          setSchoolsCount(userSchools?.length || 0);
+          
+          // Fetch total hours for the user
+          const { data: userHours, error: userHoursError } = await supabase
+            .from('work_entries')
+            .select('hours')
+            .eq('employee_id', currentUser.id) as { data: any[], error: any };
+          
+          if (userHoursError) {
+            throw new Error(`Error al obtener horas del usuario: ${userHoursError.message}`);
+          }
+          
+          const totalUserHours = userHours?.reduce((total, entry) => total + parseFloat(entry.hours), 0) || 0;
+          setHoursCount(totalUserHours);
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar datos del dashboard';

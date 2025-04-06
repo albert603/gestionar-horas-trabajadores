@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
   TableBody,
@@ -21,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
@@ -40,12 +41,48 @@ import {
 import { HistoryLog } from "@/types";
 
 const History = () => {
-  const { getHistoryLogs } = useApp();
+  const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filterEntity, setFilterEntity] = useState<string>("all");
   const [filterAction, setFilterAction] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   
-  const historyLogs = getHistoryLogs();
+  useEffect(() => {
+    fetchHistoryLogs();
+  }, []);
+
+  const fetchHistoryLogs = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('history_logs')
+        .select('*')
+        .order('timestamp', { ascending: false }) as { data: any[], error: any };
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        const formattedLogs: HistoryLog[] = data.map(log => ({
+          id: log.id,
+          action: log.action,
+          description: log.description,
+          timestamp: log.timestamp,
+          performedBy: log.performed_by,
+          entityType: log.entity_type,
+          entityName: log.entity_name,
+          details: log.details
+        }));
+        
+        setHistoryLogs(formattedLogs);
+      }
+    } catch (error) {
+      console.error("Error fetching history logs:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const getActionIcon = (action: string) => {
     switch (action.toLowerCase()) {
@@ -197,7 +234,15 @@ const History = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLogs.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-40 text-center">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredLogs.length > 0 ? (
                 filteredLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="font-mono text-xs">
