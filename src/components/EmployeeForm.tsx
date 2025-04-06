@@ -335,7 +335,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
             </p>
             
             {initialData && initialData.role && initialData.role !== "no_role" && !form.getValues("username") && (
-              <Alert variant="warning" className="mt-2 border-amber-300 bg-amber-50 text-amber-800">
+              <Alert variant="default" className="mt-2 border-amber-300 bg-amber-50 text-amber-800">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Atención</AlertTitle>
                 <AlertDescription>Este usuario tiene privilegios pero no tiene credenciales de acceso. No podrá iniciar sesión.</AlertDescription>
