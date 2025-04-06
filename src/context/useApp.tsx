@@ -74,5 +74,5 @@ export const useApp = () => {
     
     // History context
     getHistoryLogs: historyContext.getHistoryLogs
-  } as unknown as AppContextType;
+  } as AppContextType;
 };

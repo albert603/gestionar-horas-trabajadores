@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { supabase } from '@/integrations/supabase/client';
+import { HistoryLog } from "@/types";
 import {
   Table,
   TableBody,
@@ -35,52 +36,48 @@ import {
   School, 
   Users, 
   Briefcase, 
-  Shield 
+  Shield,
+  RefreshCw
 } from "lucide-react";
-import { HistoryLog } from "@/types";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
 const History = () => {
+  const { getHistoryLogs } = useApp();
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterEntity, setFilterEntity] = useState<string>("all");
   const [filterAction, setFilterAction] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const { toast } = useToast();
+  
+  const fetchHistoryLogs = async () => {
+    setIsLoading(true);
+    try {
+      const logs = await getHistoryLogs();
+      setHistoryLogs(logs);
+    } catch (error) {
+      console.error("Error al cargar el historial:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el historial de actividades",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   useEffect(() => {
     fetchHistoryLogs();
   }, []);
 
-  const fetchHistoryLogs = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('history_logs')
-        .select('*')
-        .order('timestamp', { ascending: false }) as { data: any[], error: any };
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data) {
-        const formattedLogs: HistoryLog[] = data.map(log => ({
-          id: log.id,
-          action: log.action,
-          description: log.description,
-          timestamp: log.timestamp,
-          performedBy: log.performed_by,
-          entityType: log.entity_type,
-          entityName: log.entity_name,
-          details: log.details
-        }));
-        
-        setHistoryLogs(formattedLogs);
-      }
-    } catch (error) {
-      console.error("Error fetching history logs:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRefresh = () => {
+    fetchHistoryLogs();
+    toast({
+      title: "Actualizando historial",
+      description: "Se está cargando la información más reciente"
+    });
   };
   
   const getActionIcon = (action: string) => {
@@ -162,6 +159,10 @@ const History = () => {
           <h1 className="text-3xl font-bold text-gray-800">Historial</h1>
           <p className="text-gray-600">Registro de actividades y cambios en el sistema</p>
         </div>
+        <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
+          <span>Actualizar</span>
+        </Button>
       </div>
 
       <Card className="p-4">

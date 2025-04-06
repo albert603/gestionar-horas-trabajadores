@@ -1,12 +1,13 @@
 
-import { useState, useContext, createContext, useEffect } from 'react';
+import React, { useState, useContext, createContext, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { HistoryLog } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface HistoryContextType {
   historyLogs: HistoryLog[];
-  addHistoryLog: (action: string, description: string, performedBy?: string) => void;
+  addHistoryLog: (action: string, description: string, performedBy?: string) => Promise<void>;
   getHistoryLogs: () => Promise<HistoryLog[]>;
 }
 
@@ -47,6 +48,11 @@ export const HistoryProvider: React.FC<{
         }
       } catch (error) {
         console.error("Error fetching history logs:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los registros del historial",
+          variant: "destructive"
+        });
       }
     };
     
@@ -64,7 +70,7 @@ export const HistoryProvider: React.FC<{
         entityType: action.toLowerCase(),
       };
       
-      // Add to local state
+      // Add to local state first for immediate UI update
       setHistoryLogs(prev => [newLog, ...prev]);
       
       // Add to Supabase
@@ -81,9 +87,22 @@ export const HistoryProvider: React.FC<{
       
       if (error) {
         console.error("Error adding history log to Supabase:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo guardar el registro en el historial",
+          variant: "destructive"
+        });
       }
+      
+      return Promise.resolve();
     } catch (error) {
       console.error("Error adding history log:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar el registro en el historial",
+        variant: "destructive"
+      });
+      return Promise.reject(error);
     }
   };
 
@@ -110,10 +129,16 @@ export const HistoryProvider: React.FC<{
           details: log.details
         }));
         
+        setHistoryLogs(formattedLogs);
         return formattedLogs;
       }
     } catch (error) {
       console.error("Error fetching history logs:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los registros del historial",
+        variant: "destructive"
+      });
     }
     
     return historyLogs; // Fallback to local state if Supabase query fails
