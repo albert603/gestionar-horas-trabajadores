@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { LockKeyhole, User } from "lucide-react";
+import { LockKeyhole, User, Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useApp();
   const navigate = useNavigate();
@@ -49,6 +50,10 @@ const Login = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-md p-4">
@@ -82,7 +87,7 @@ const Login = () => {
                   <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -90,6 +95,21 @@ const Login = () => {
                     disabled={isLoading}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    <span className="sr-only">
+                      {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    </span>
+                  </button>
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
