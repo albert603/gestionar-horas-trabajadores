@@ -71,9 +71,14 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
     },
   });
 
+  const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
+    // We just pass the data directly to onSubmit
+    onSubmit(data);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <Tabs defaultValue="info" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="info">Información</TabsTrigger>

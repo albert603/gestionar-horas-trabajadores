@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -46,7 +47,7 @@ const Employees = () => {
   const filteredEmployees = employees.filter((employee) =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.email.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddSubmit = (data: Omit<Employee, "id" | "active">) => {

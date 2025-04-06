@@ -48,7 +48,7 @@ export const EmployeeProvider: React.FC<{
   const deleteEmployee = (id: string) => {
     const employee = employees.find(e => e.id === id);
     
-    // Verificar si es el último administrador
+    // Verificar si es el único administrador que queda antes de eliminarlo
     if (employee?.role === "Administrador") {
       const adminCount = employees.filter(e => e.role === "Administrador" && e.id !== id).length;
       if (adminCount < 1) {
