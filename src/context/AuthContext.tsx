@@ -58,6 +58,15 @@ export const AuthProvider: React.FC<{
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log("Login attempt for username:", username);
+      
+      // For debugging, log all available employees
+      console.log("Available employees:", employees.map(e => ({
+        username: e.username,
+        active: e.active,
+        role: e.role
+      })));
+      
       // First check if user exists in the local data
       const user = employees.find(e => 
         e.username === username && 
@@ -67,6 +76,11 @@ export const AuthProvider: React.FC<{
       
       if (!user) {
         console.log("Login failed: Invalid credentials or inactive user");
+        toast({
+          title: "Error de inicio de sesión",
+          description: "Usuario o contraseña incorrectos.",
+          variant: "destructive",
+        });
         return false;
       }
       
@@ -79,6 +93,12 @@ export const AuthProvider: React.FC<{
       
       // Then save to localStorage
       localStorage.setItem('currentUser', JSON.stringify(user));
+      
+      // Show toast notification
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: `Bienvenido ${user.name}`,
+      });
       
       return true;
     } catch (error) {

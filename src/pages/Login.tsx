@@ -20,23 +20,28 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!username || !password) {
+      toast({
+        title: "Error de inicio de sesión",
+        description: "Por favor ingrese usuario y contraseña.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
+      console.log("Attempting login with:", { username });
       const success = await login(username, password);
       
       if (success) {
-        toast({
-          title: "Inicio de sesión exitoso",
-          description: "Redirigiendo al panel principal...",
-        });
-        navigate("/");
-      } else {
-        toast({
-          title: "Error de inicio de sesión",
-          description: "Usuario o contraseña incorrectos.",
-          variant: "destructive",
-        });
+        // Navigate only after successful login
+        // Toast notification is now handled in the AuthContext
+        setTimeout(() => {
+          navigate("/");
+        }, 500);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -122,7 +127,7 @@ const Login = () => {
               Sistema de gestión de horas trabajadas
             </p>
             <div className="mt-4 text-xs text-center text-gray-400">
-              <p>Admin: admin/admin</p>
+              <p>Admin: admin/admin123456</p>
               <p>Usuario: user/user</p>
             </div>
           </CardFooter>
