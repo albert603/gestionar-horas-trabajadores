@@ -5,6 +5,10 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Loader2, Check, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+// Use any type for now since we can't modify the types.ts file
+type SupabaseData = any;
 
 const SupabaseTest = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,6 +16,7 @@ const SupabaseTest = () => {
   const [employeesCount, setEmployeesCount] = useState(0);
   const [schoolsCount, setSchoolsCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const testConnection = async () => {
     setIsLoading(true);
@@ -21,7 +26,7 @@ const SupabaseTest = () => {
       // Probar la conexión obteniendo los empleados
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
-        .select('*');
+        .select('*') as { data: SupabaseData[] | null, error: any };
       
       if (employeesError) {
         throw new Error(`Error al obtener empleados: ${employeesError.message}`);
@@ -30,7 +35,7 @@ const SupabaseTest = () => {
       // Probar obteniendo las escuelas
       const { data: schools, error: schoolsError } = await supabase
         .from('schools')
-        .select('*');
+        .select('*') as { data: SupabaseData[] | null, error: any };
       
       if (schoolsError) {
         throw new Error(`Error al obtener escuelas: ${schoolsError.message}`);
@@ -40,10 +45,22 @@ const SupabaseTest = () => {
       setIsConnected(true);
       setEmployeesCount(employees?.length || 0);
       setSchoolsCount(schools?.length || 0);
+      
+      toast({
+        title: "Conexión exitosa",
+        description: `Se encontraron ${employees?.length || 0} empleados y ${schools?.length || 0} colegios.`,
+      });
     } catch (err) {
       setIsConnected(false);
-      setError(err instanceof Error ? err.message : 'Error al conectar con Supabase');
+      const errorMessage = err instanceof Error ? err.message : 'Error al conectar con Supabase';
+      setError(errorMessage);
       console.error('Error de conexión:', err);
+      
+      toast({
+        title: "Error de conexión",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +81,7 @@ const SupabaseTest = () => {
               No probado
             </Badge>
           ) : isConnected ? (
-            <Badge variant="success" className="bg-green-100 text-green-800 px-4 py-2 flex items-center gap-2">
+            <Badge variant="default" className="bg-green-100 text-green-800 px-4 py-2 flex items-center gap-2">
               <Check className="h-4 w-4" />
               Conectado
             </Badge>
