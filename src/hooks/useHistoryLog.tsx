@@ -1,5 +1,5 @@
 
-import { useState, useContext, createContext } from 'react';
+import { useState, useContext, createContext, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { HistoryLog } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,7 @@ export const HistoryProvider: React.FC<{
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
 
   // Carga inicial de logs desde Supabase
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchHistoryLogs = async () => {
       try {
         const { data, error } = await supabase

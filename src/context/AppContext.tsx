@@ -134,7 +134,7 @@ export interface AppContextType {
     employee: Employee;
     hours: number;
   }[];
-  getHistoryLogs: () => HistoryLog[];
+  getHistoryLogs: () => Promise<HistoryLog[]>;
 }
 
 // Combined context that wraps all individual contexts
@@ -271,7 +271,7 @@ const CombinedContextProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const history = useHistory();
 
   // Combine all context values into one
-  const combinedContext: AppContextType = {
+  const combinedContext = {
     // Auth context
     isAuthenticated: auth.isAuthenticated,
     currentUser: auth.currentUser,
@@ -332,7 +332,7 @@ const CombinedContextProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const CombinedContext = React.createContext<AppContextType | undefined>(undefined);
   
   return (
-    <CombinedContext.Provider value={combinedContext}>
+    <CombinedContext.Provider value={combinedContext as AppContextType}>
       {children}
     </CombinedContext.Provider>
   );
@@ -404,5 +404,5 @@ export const useApp = () => {
     
     // History context
     getHistoryLogs: historyContext.getHistoryLogs
-  } as AppContextType;
+  } as unknown as AppContextType;
 };
