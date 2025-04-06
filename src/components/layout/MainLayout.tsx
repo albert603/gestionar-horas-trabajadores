@@ -1,7 +1,7 @@
 
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   Building2,
   ClipboardList,
@@ -55,7 +55,7 @@ const NavItem = ({ to, icon, label, end }: NavItemProps) => {
 };
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
-  const { isAuthenticated, currentUser, logout } = useApp();
+  const { isAuthenticated, currentUser, logout } = useAuth();
   const navigate = useNavigate();
   
   const handleLogout = () => {

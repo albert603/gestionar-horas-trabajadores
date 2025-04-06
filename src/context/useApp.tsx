@@ -9,7 +9,7 @@ import { useHistory } from '@/hooks/useHistoryLog';
 import { AppContextType } from './AppContextType';
 
 // Export the hook to use the combined context
-export const useApp = () => {
+export const useApp = (): AppContextType => {
   const authContext = useAuth();
   const employeeContext = useEmployee();
   const schoolContext = useSchool();
@@ -74,5 +74,5 @@ export const useApp = () => {
     
     // History context
     getHistoryLogs: historyContext.getHistoryLogs
-  } as AppContextType;
+  };
 };

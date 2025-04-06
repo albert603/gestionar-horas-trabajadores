@@ -1,20 +1,20 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { LockKeyhole, User, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useApp();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 

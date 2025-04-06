@@ -4,7 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AppProvider, useApp } from "@/context/AppContext";
+import { AppProvider } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Hours from "./pages/Hours";
@@ -26,27 +27,27 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected route component
-const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, allowedRoles?: string[] }) => {
-  const { isAuthenticated, currentUser } = useApp();
-  
-  // Redirect to login if user is not authenticated
-  if (!isAuthenticated) {
-    console.log("User not authenticated, redirecting to login");
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Check if user has required role
-  if (allowedRoles && currentUser?.role && !allowedRoles.includes(currentUser.role)) {
-    console.log('Access denied. User role:', currentUser.role, 'Allowed roles:', allowedRoles);
-    return <Navigate to="/" replace />;
-  }
-  
-  return <>{element}</>;
-};
-
-// Routes configuration with role-based access
+// Protected route component - moved inside AppRoutes to ensure context is available
 const AppRoutes = () => {
+  const { isAuthenticated, currentUser } = useAuth();
+  
+  // Protected route component
+  const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, allowedRoles?: string[] }) => {
+    // Redirect to login if user is not authenticated
+    if (!isAuthenticated) {
+      console.log("User not authenticated, redirecting to login");
+      return <Navigate to="/login" replace />;
+    }
+    
+    // Check if user has required role
+    if (allowedRoles && currentUser?.role && !allowedRoles.includes(currentUser.role)) {
+      console.log('Access denied. User role:', currentUser.role, 'Allowed roles:', allowedRoles);
+      return <Navigate to="/" replace />;
+    }
+    
+    return <>{element}</>;
+  };
+  
   // Ensure the initial route is checked for authentication
   return (
     <Routes>

@@ -3,10 +3,10 @@ import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import DashboardSummary from "@/components/DashboardSummary";
 import { useToast } from "@/hooks/use-toast";
-import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 
 const Index = () => {
-  const { currentUser } = useApp();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
