@@ -58,6 +58,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   
+  // Configurar el formulario con los valores iniciales
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
@@ -72,7 +73,12 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
   });
 
   const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
-    // We just pass the data directly to onSubmit
+    // Si estamos editando y no se proporcionó una contraseña, mantenemos la existente
+    if (initialData && !data.password) {
+      data.password = initialData.password;
+    }
+    
+    // Pasamos los datos procesados al manejador onSubmit
     onSubmit(data);
   };
 
@@ -109,6 +115,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value || undefined}
+                    value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -140,6 +147,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value || undefined}
+                    value={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -219,7 +227,7 @@ export function EmployeeForm({ initialData, onSubmit, onCancel }: EmployeeFormPr
                   <FormControl>
                     <div className="relative">
                       <Input 
-                        placeholder="••••••••" 
+                        placeholder={initialData ? "••••••••" : "Contraseña"} 
                         type={showPassword ? "text" : "password"} 
                         {...field} 
                       />

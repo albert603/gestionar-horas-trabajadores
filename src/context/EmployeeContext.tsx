@@ -34,6 +34,7 @@ export const EmployeeProvider: React.FC<{
   };
 
   const updateEmployee = (employee: Employee) => {
+    // No hay restricciones para actualizar cualquier empleado, incluidos administradores
     setEmployees(prev => 
       prev.map(e => e.id === employee.id ? employee : e)
     );

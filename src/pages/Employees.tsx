@@ -36,7 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 
 const Employees = () => {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, roles } = useApp();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, roles, currentUser } = useApp();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -61,14 +61,24 @@ const Employees = () => {
 
   const handleEditSubmit = (data: Omit<Employee, "id" | "active">) => {
     if (currentEmployee) {
-      updateEmployee({ ...data, id: currentEmployee.id, active: currentEmployee.active });
+      // Asegurarnos de conservar el ID y el estado activo del empleado
+      const updatedEmployee = { 
+        ...currentEmployee,
+        ...data, 
+        id: currentEmployee.id, 
+        active: currentEmployee.active 
+      };
+      
+      // Llamada a updateEmployee con el empleado actualizado
+      updateEmployee(updatedEmployee);
+      
+      toast({
+        title: "Empleado actualizado",
+        description: `${data.name} ha sido actualizado correctamente.`,
+      });
     }
     setIsEditDialogOpen(false);
     setCurrentEmployee(null);
-    toast({
-      title: "Empleado actualizado",
-      description: `${data.name} ha sido actualizado correctamente.`,
-    });
   };
 
   const handleDelete = () => {
@@ -98,7 +108,9 @@ const Employees = () => {
   };
 
   const openEditDialog = (employee: Employee) => {
-    setCurrentEmployee(employee);
+    // Asegurarse de que obtenemos una copia fresca del empleado
+    const freshEmployee = { ...employee };
+    setCurrentEmployee(freshEmployee);
     setIsEditDialogOpen(true);
   };
 
