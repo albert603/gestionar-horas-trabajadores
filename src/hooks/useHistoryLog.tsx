@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface HistoryContextType {
   historyLogs: HistoryLog[];
   addHistoryLog: (action: string, description: string, performedBy?: string) => void;
-  getHistoryLogs: () => HistoryLog[];
+  getHistoryLogs: () => Promise<HistoryLog[]>;
 }
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
@@ -77,7 +77,7 @@ export const HistoryProvider: React.FC<{
           performed_by: newLog.performedBy,
           entity_type: newLog.entityType,
           timestamp: newLog.timestamp
-        });
+        }) as { error: any };
       
       if (error) {
         console.error("Error adding history log to Supabase:", error);
@@ -87,7 +87,7 @@ export const HistoryProvider: React.FC<{
     }
   };
 
-  const getHistoryLogs = async () => {
+  const getHistoryLogs = async (): Promise<HistoryLog[]> => {
     try {
       const { data, error } = await supabase
         .from('history_logs')

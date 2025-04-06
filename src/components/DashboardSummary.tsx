@@ -80,14 +80,16 @@ const DashboardSummary = () => {
           const { data: userSchools, error: userSchoolsError } = await supabase
             .from('work_entries')
             .select('school_id')
-            .eq('employee_id', currentUser.id)
-            .distinct() as { data: any[], error: any };
+            .eq('employee_id', currentUser.id) as { data: any[], error: any };
           
           if (userSchoolsError) {
             throw new Error(`Error al obtener colegios del usuario: ${userSchoolsError.message}`);
           }
           
-          setSchoolsCount(userSchools?.length || 0);
+          // Convert to unique schools
+          const uniqueSchoolIds = new Set();
+          userSchools?.forEach(entry => uniqueSchoolIds.add(entry.school_id));
+          setSchoolsCount(uniqueSchoolIds.size || 0);
           
           // Fetch total hours for the user
           const { data: userHours, error: userHoursError } = await supabase
