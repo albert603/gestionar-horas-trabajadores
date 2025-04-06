@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Building2, User, Clock } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 import { useApp } from '@/context/AppContext';
+import DashboardStats from './dashboard/DashboardStats';
+import UserInfoCard from './dashboard/UserInfoCard';
 
 const DashboardSummary = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +46,8 @@ const DashboardSummary = () => {
             .reduce((total, entry) => total + entry.hours, 0)
         : 0);
 
+  const welcomeMessage = "Bienvenido a tu panel de control. Aquí podrás ver tus colegios asignados y registrar tus horas trabajadas.";
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -60,60 +63,24 @@ const DashboardSummary = () => {
       <CardContent className="space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <Skeleton className="h-8 w-8 rounded-full" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {isAdmin && (
-              <div className="bg-blue-50 p-4 rounded-lg flex items-center">
-                <div className="rounded-full bg-blue-100 p-3 mr-4">
-                  <User className="h-6 w-6 text-blue-700" />
-                </div>
-                <div>
-                  <p className="text-sm text-blue-700">Empleados</p>
-                  <p className="text-2xl font-bold">{employeesCount}</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="bg-green-50 p-4 rounded-lg flex items-center">
-              <div className="rounded-full bg-green-100 p-3 mr-4">
-                <Building2 className="h-6 w-6 text-green-700" />
-              </div>
-              <div>
-                <p className="text-sm text-green-700">
-                  {isAdmin ? 'Colegios' : 'Mis Colegios'}
-                </p>
-                <p className="text-2xl font-bold">{isAdmin ? schoolsCount : userSchoolsCount}</p>
-              </div>
-            </div>
-            
-            <div className="bg-purple-50 p-4 rounded-lg flex items-center">
-              <div className="rounded-full bg-purple-100 p-3 mr-4">
-                <Clock className="h-6 w-6 text-purple-700" />
-              </div>
-              <div>
-                <p className="text-sm text-purple-700">
-                  {isAdmin ? 'Total Horas' : 'Mis Horas'}
-                </p>
-                <p className="text-2xl font-bold">{isAdmin ? hoursCount : userHoursCount}</p>
-              </div>
-            </div>
-          </div>
+          <DashboardStats
+            isAdmin={isAdmin}
+            employeesCount={employeesCount}
+            schoolsCount={schoolsCount}
+            userSchoolsCount={userSchoolsCount}
+            hoursCount={hoursCount}
+            userHoursCount={userHoursCount}
+          />
         )}
         
         {!isAdmin && !isLoading && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center mb-2">
-              <Badge variant="outline" className="mr-2">
-                {currentUserPosition}
-              </Badge>
-              <p className="text-sm text-gray-500">Usuario Regular</p>
-            </div>
-            <p className="text-sm">
-              Bienvenido a tu panel de control. Aquí podrás ver tus colegios asignados y registrar tus horas trabajadas.
-            </p>
-          </div>
+          <UserInfoCard 
+            position={currentUserPosition}
+            message={welcomeMessage}
+          />
         )}
       </CardContent>
     </Card>
