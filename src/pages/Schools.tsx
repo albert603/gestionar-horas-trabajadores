@@ -47,6 +47,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 
 const Schools = () => {
   const { 
@@ -89,39 +90,109 @@ const Schools = () => {
   });
 
   const handleAddSubmit = (data: { name: string }) => {
-    addSchool({
-      name: data.name
-    });
-    setIsAddDialogOpen(false);
+    try {
+      addSchool({
+        name: data.name
+      });
+      setIsAddDialogOpen(false);
+      toast({
+        title: "Colegio añadido",
+        description: `El colegio ${data.name} se ha añadido correctamente.`,
+      });
+    } catch (error) {
+      console.error("Error al añadir colegio:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al añadir el colegio.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditSubmit = (data: { name: string }) => {
-    if (currentSchool) {
-      updateSchool({
-        id: currentSchool.id,
-        name: data.name
+    try {
+      if (currentSchool) {
+        updateSchool({
+          id: currentSchool.id,
+          name: data.name
+        });
+        toast({
+          title: "Colegio actualizado",
+          description: `El colegio se ha actualizado correctamente.`,
+        });
+      }
+      setIsEditDialogOpen(false);
+      setCurrentSchool(null);
+    } catch (error) {
+      console.error("Error al actualizar colegio:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al actualizar el colegio.",
+        variant: "destructive",
       });
     }
-    setIsEditDialogOpen(false);
-    setCurrentSchool(null);
   };
 
   const handleDelete = () => {
-    if (currentSchool) {
-      const success = deleteSchool(currentSchool.id);
-      if (success !== false) {
-        setIsDeleteDialogOpen(false);
-        setCurrentSchool(null);
+    try {
+      if (currentSchool) {
+        const success = deleteSchool(currentSchool.id);
+        if (success) {
+          toast({
+            title: "Colegio eliminado",
+            description: "El colegio se ha eliminado correctamente.",
+          });
+          setIsDeleteDialogOpen(false);
+          setCurrentSchool(null);
+        } else {
+          toast({
+            title: "No se puede eliminar",
+            description: "Este colegio tiene registros de horas asociados. Use la opción 'Eliminar y restablecer'.",
+            variant: "destructive",
+          });
+          setIsDeleteDialogOpen(false);
+          setIsForceDeleteDialogOpen(true);
+        }
       }
+    } catch (error) {
+      console.error("Error al eliminar colegio:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al eliminar el colegio.",
+        variant: "destructive",
+      });
+      setIsDeleteDialogOpen(false);
     }
   };
 
   const handleForceDelete = () => {
-    if (currentSchool) {
-      deleteSchoolAndResetHours(currentSchool.id);
+    try {
+      if (currentSchool) {
+        const success = deleteSchoolAndResetHours(currentSchool.id);
+        if (success) {
+          toast({
+            title: "Colegio eliminado",
+            description: "El colegio y todos sus registros asociados han sido eliminados.",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Hubo un problema al eliminar el colegio y sus registros.",
+            variant: "destructive",
+          });
+        }
+      }
+      setIsForceDeleteDialogOpen(false);
+      setCurrentSchool(null);
+    } catch (error) {
+      console.error("Error al eliminar colegio y restablecer horas:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al eliminar el colegio y sus registros.",
+        variant: "destructive",
+      });
+      setIsForceDeleteDialogOpen(false);
     }
-    setIsForceDeleteDialogOpen(false);
-    setCurrentSchool(null);
   };
 
   const openEditDialog = (school: any) => {

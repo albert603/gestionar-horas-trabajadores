@@ -270,35 +270,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteSchool = (id: string) => {
-    const hasWorkEntries = workEntries.some(entry => entry.schoolId === id);
-    if (hasWorkEntries) {
+    try {
+      const hasWorkEntries = workEntries.some(entry => entry.schoolId === id);
+      if (hasWorkEntries) {
+        return false;
+      }
+      
+      const school = schools.find(s => s.id === id);
+      if (school) {
+        setSchools(prev => prev.filter(s => s.id !== id));
+        addHistoryLog("Eliminar", `Se eliminó el colegio ${school.name}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error al eliminar colegio:", error);
       return false;
     }
-    
-    const school = schools.find(s => s.id === id);
-    setSchools(prev => prev.filter(s => s.id !== id));
-    addHistoryLog("Eliminar", `Se eliminó el colegio ${school?.name || id}`);
-    return true;
   };
 
   const deleteSchoolAndResetHours = (id: string) => {
-    const school = schools.find(s => s.id === id);
-    
-    const entriesOfSchool = workEntries.filter(entry => entry.schoolId === id);
-    const entryIds = entriesOfSchool.map(entry => entry.id);
-    
-    setEditRecords(prev => 
-      prev.filter(record => !entryIds.includes(record.workEntryId))
-    );
-    
-    setWorkEntries(prev => prev.filter(entry => entry.schoolId !== id));
-    
-    setSchools(prev => prev.filter(s => s.id !== id));
-    
-    addHistoryLog(
-      "Eliminar", 
-      `Se eliminó el colegio ${school?.name || id} y todos sus registros asociados`
-    );
+    try {
+      const school = schools.find(s => s.id === id);
+      
+      if (school) {
+        const entriesOfSchool = workEntries.filter(entry => entry.schoolId === id);
+        const entryIds = entriesOfSchool.map(entry => entry.id);
+        
+        setEditRecords(prev => 
+          prev.filter(record => !entryIds.includes(record.workEntryId))
+        );
+        
+        setWorkEntries(prev => prev.filter(entry => entry.schoolId !== id));
+        
+        setSchools(prev => prev.filter(s => s.id !== id));
+        
+        addHistoryLog(
+          "Eliminar", 
+          `Se eliminó el colegio ${school.name} y todos sus registros asociados`
+        );
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error al eliminar colegio y restablecer horas:", error);
+      return false;
+    }
   };
 
   const addWorkEntry = (entry: Omit<WorkEntry, "id">) => {

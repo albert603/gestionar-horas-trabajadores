@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -67,6 +66,9 @@ const History = () => {
       case "workentry": return <Clock className="h-4 w-4 text-green-500" />;
       case "position": return <Briefcase className="h-4 w-4 text-orange-500" />;
       case "role": return <Shield className="h-4 w-4 text-red-500" />;
+      case "añadir": return <Plus className="h-4 w-4 text-green-500" />;
+      case "actualizar": return <Pencil className="h-4 w-4 text-blue-500" />;
+      case "eliminar": return <Trash className="h-4 w-4 text-red-500" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
