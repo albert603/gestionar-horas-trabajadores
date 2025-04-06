@@ -1,143 +1,49 @@
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { School, Employee } from '@/types';
 import { Building2, User, Clock } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useApp } from '@/context/AppContext';
 
 const DashboardSummary = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [employeesCount, setEmployeesCount] = useState(0);
-  const [schoolsCount, setSchoolsCount] = useState(0);
-  const [hoursCount, setHoursCount] = useState(0);
-  const [currentUserName, setCurrentUserName] = useState('');
-  const [currentUserPosition, setCurrentUserPosition] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const { currentUser, isAuthenticated } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { 
+    currentUser, 
+    isAuthenticated,
+    employees,
+    schools,
+    workEntries
+  } = useApp();
+  
   const isAdmin = currentUser?.role === 'Administrador';
+  const currentUserName = currentUser?.name || '';
+  const currentUserPosition = currentUser?.position || '';
 
-  useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      fetchDashboardData();
-    }
-  }, [isAuthenticated, currentUser]);
-
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Set current user information
-      if (currentUser) {
-        setCurrentUserName(currentUser.name);
-        setCurrentUserPosition(currentUser.position);
-      }
-
-      // If admin, fetch counts for all employees and schools
-      if (isAdmin) {
-        // Fetch all employees
-        const { data: employees, error: employeesError } = await supabase
-          .from('employees')
-          .select('*') as { data: any[], error: any };
-        
-        if (employeesError) {
-          throw new Error(`Error al obtener empleados: ${employeesError.message}`);
-        }
-        
-        setEmployeesCount(employees?.length || 0);
-        
-        // Fetch all schools
-        const { data: schools, error: schoolsError } = await supabase
-          .from('schools')
-          .select('*') as { data: any[], error: any };
-        
-        if (schoolsError) {
-          throw new Error(`Error al obtener escuelas: ${schoolsError.message}`);
-        }
-        
-        setSchoolsCount(schools?.length || 0);
-        
-        // Fetch total hours from work_entries
-        const { data: workEntries, error: workEntriesError } = await supabase
-          .from('work_entries')
-          .select('hours') as { data: any[], error: any };
-        
-        if (workEntriesError) {
-          throw new Error(`Error al obtener horas trabajadas: ${workEntriesError.message}`);
-        }
-        
-        // Calculate total hours from work_entries
-        const totalHours = workEntries?.reduce((total, entry) => total + parseFloat(entry.hours), 0) || 0;
-        setHoursCount(totalHours);
-      } else {
-        // For regular users, fetch their assigned schools and hours
-        if (currentUser) {
-          // Fetch schools assigned to the user
-          const { data: userSchools, error: userSchoolsError } = await supabase
-            .from('work_entries')
-            .select('school_id')
-            .eq('employee_id', currentUser.id) as { data: any[], error: any };
-          
-          if (userSchoolsError) {
-            throw new Error(`Error al obtener colegios del usuario: ${userSchoolsError.message}`);
-          }
-          
-          // Convert to unique schools
-          const uniqueSchoolIds = new Set();
-          userSchools?.forEach(entry => uniqueSchoolIds.add(entry.school_id));
-          setSchoolsCount(uniqueSchoolIds.size || 0);
-          
-          // Fetch total hours for the user
-          const { data: userHours, error: userHoursError } = await supabase
-            .from('work_entries')
-            .select('hours')
-            .eq('employee_id', currentUser.id) as { data: any[], error: any };
-          
-          if (userHoursError) {
-            throw new Error(`Error al obtener horas del usuario: ${userHoursError.message}`);
-          }
-          
-          const totalUserHours = userHours?.reduce((total, entry) => total + parseFloat(entry.hours), 0) || 0;
-          setHoursCount(totalUserHours);
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar datos del dashboard';
-      setError(errorMessage);
-      console.error('Error de dashboard:', err);
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (error) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Error de Conexión</CardTitle>
-          <CardDescription>
-            No se pudieron cargar los datos del sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-            <p className="font-semibold">Error:</p>
-            <p>{error}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Calculate counts from context data
+  const employeesCount = employees.length;
+  const schoolsCount = schools.length;
+  
+  // Calculate total hours
+  const hoursCount = workEntries.reduce((total, entry) => total + entry.hours, 0);
+  
+  // For regular users, filter to show only their data
+  const userSchoolsCount = isAdmin 
+    ? schoolsCount 
+    : (currentUser 
+        ? schools.filter(school => 
+            workEntries.some(entry => 
+              entry.schoolId === school.id && entry.employeeId === currentUser.id
+            )
+          ).length 
+        : 0);
+  
+  const userHoursCount = isAdmin
+    ? hoursCount
+    : (currentUser
+        ? workEntries
+            .filter(entry => entry.employeeId === currentUser.id)
+            .reduce((total, entry) => total + entry.hours, 0)
+        : 0);
 
   return (
     <Card className="w-full">
@@ -178,7 +84,7 @@ const DashboardSummary = () => {
                 <p className="text-sm text-green-700">
                   {isAdmin ? 'Colegios' : 'Mis Colegios'}
                 </p>
-                <p className="text-2xl font-bold">{schoolsCount}</p>
+                <p className="text-2xl font-bold">{isAdmin ? schoolsCount : userSchoolsCount}</p>
               </div>
             </div>
             
@@ -190,7 +96,7 @@ const DashboardSummary = () => {
                 <p className="text-sm text-purple-700">
                   {isAdmin ? 'Total Horas' : 'Mis Horas'}
                 </p>
-                <p className="text-2xl font-bold">{hoursCount}</p>
+                <p className="text-2xl font-bold">{isAdmin ? hoursCount : userHoursCount}</p>
               </div>
             </div>
           </div>
@@ -207,13 +113,6 @@ const DashboardSummary = () => {
             <p className="text-sm">
               Bienvenido a tu panel de control. Aquí podrás ver tus colegios asignados y registrar tus horas trabajadas.
             </p>
-          </div>
-        )}
-        
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-            <p className="font-semibold">Error:</p>
-            <p>{error}</p>
           </div>
         )}
       </CardContent>
