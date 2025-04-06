@@ -17,7 +17,6 @@ const Schools = () => {
     toggleSchoolExpand,
     openEditDialog,
     openDeleteDialog,
-    openForceDeleteDialog,
     hasWorkEntries,
     isAddDialogOpen,
     setIsAddDialogOpen,
@@ -25,13 +24,10 @@ const Schools = () => {
     setIsEditDialogOpen,
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
-    isForceDeleteDialogOpen,
-    setIsForceDeleteDialogOpen,
     currentSchool,
     handleAddSubmit,
     handleEditSubmit,
     handleDelete,
-    handleForceDelete,
     selectedMonth,
     setSelectedMonth,
     monthlyReportData
@@ -64,7 +60,6 @@ const Schools = () => {
             toggleSchoolExpand={toggleSchoolExpand}
             openEditDialog={openEditDialog}
             openDeleteDialog={openDeleteDialog}
-            openForceDeleteDialog={openForceDeleteDialog}
             hasWorkEntries={hasWorkEntries}
           />
         </TabsContent>
@@ -89,14 +84,11 @@ const Schools = () => {
         setIsEditDialogOpen={setIsEditDialogOpen}
         isDeleteDialogOpen={isDeleteDialogOpen}
         setIsDeleteDialogOpen={setIsDeleteDialogOpen}
-        isForceDeleteDialogOpen={isForceDeleteDialogOpen}
-        setIsForceDeleteDialogOpen={setIsForceDeleteDialogOpen}
         currentSchool={currentSchool}
         hasWorkEntries={hasWorkEntries}
         handleAddSubmit={handleAddSubmit}
         handleEditSubmit={handleEditSubmit}
         handleDelete={handleDelete}
-        handleForceDelete={handleForceDelete}
       />
     </MainLayout>
   );

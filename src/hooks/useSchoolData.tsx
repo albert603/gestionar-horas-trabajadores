@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { toast } from "@/hooks/use-toast";
@@ -11,7 +10,6 @@ export const useSchoolData = () => {
     workEntries, 
     addSchool, 
     updateSchool, 
-    deleteSchool,
     deleteSchoolAndResetHours, 
     getTotalHoursBySchoolThisMonth,
     getEmployeeById,
@@ -21,7 +19,6 @@ export const useSchoolData = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isForceDeleteDialogOpen, setIsForceDeleteDialogOpen] = useState(false);
   const [currentSchool, setCurrentSchool] = useState<School | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().getMonth() + "-" + new Date().getFullYear()
@@ -92,22 +89,11 @@ export const useSchoolData = () => {
   const handleDelete = () => {
     try {
       if (currentSchool) {
-        const result = deleteSchool(currentSchool.id);
-        if (result) {
-          toast({
-            title: "Colegio eliminado",
-            description: "El colegio se ha eliminado correctamente.",
-          });
-        } else {
-          toast({
-            title: "No se puede eliminar",
-            description: "Este colegio tiene registros de horas asociados. Use la opción 'Eliminar y restablecer'.",
-            variant: "destructive",
-          });
-          setIsDeleteDialogOpen(false);
-          setIsForceDeleteDialogOpen(true);
-          return;
-        }
+        deleteSchoolAndResetHours(currentSchool.id);
+        toast({
+          title: "Colegio eliminado",
+          description: "El colegio y todos sus registros asociados han sido eliminados. El historial de horas se mantiene para referencia.",
+        });
       }
       setIsDeleteDialogOpen(false);
       setCurrentSchool(null);
@@ -122,29 +108,6 @@ export const useSchoolData = () => {
     }
   };
 
-  const handleForceDelete = () => {
-    try {
-      if (currentSchool) {
-        deleteSchoolAndResetHours(currentSchool.id);
-        toast({
-          title: "Colegio eliminado",
-          description: "El colegio y todos sus registros asociados han sido eliminados.",
-        });
-      }
-      setIsForceDeleteDialogOpen(false);
-      setCurrentSchool(null);
-    } catch (error) {
-      console.error("Error al eliminar colegio y restablecer horas:", error);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al eliminar el colegio y sus registros.",
-        variant: "destructive",
-      });
-      setIsForceDeleteDialogOpen(false);
-      setCurrentSchool(null);
-    }
-  };
-
   const openEditDialog = (school: School) => {
     setCurrentSchool(school);
     setIsEditDialogOpen(true);
@@ -153,11 +116,6 @@ export const useSchoolData = () => {
   const openDeleteDialog = (school: School) => {
     setCurrentSchool(school);
     setIsDeleteDialogOpen(true);
-  };
-
-  const openForceDeleteDialog = (school: School) => {
-    setCurrentSchool(school);
-    setIsForceDeleteDialogOpen(true);
   };
 
   const toggleSchoolExpand = (schoolId: string) => {
@@ -224,7 +182,6 @@ export const useSchoolData = () => {
     toggleSchoolExpand,
     openEditDialog,
     openDeleteDialog,
-    openForceDeleteDialog,
     hasWorkEntries,
     isAddDialogOpen,
     setIsAddDialogOpen,
@@ -232,13 +189,10 @@ export const useSchoolData = () => {
     setIsEditDialogOpen,
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
-    isForceDeleteDialogOpen,
-    setIsForceDeleteDialogOpen,
     currentSchool,
     handleAddSubmit,
     handleEditSubmit,
     handleDelete,
-    handleForceDelete,
     selectedMonth,
     setSelectedMonth,
     monthlyReportData

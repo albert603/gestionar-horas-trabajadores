@@ -10,12 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import { School } from "@/types";
 
 interface SchoolsListProps {
@@ -24,7 +18,6 @@ interface SchoolsListProps {
   toggleSchoolExpand: (schoolId: string) => void;
   openEditDialog: (school: any) => void;
   openDeleteDialog: (school: any) => void;
-  openForceDeleteDialog: (school: any) => void;
   hasWorkEntries: (schoolId: string) => boolean;
 }
 
@@ -34,7 +27,6 @@ export const SchoolsList = ({
   toggleSchoolExpand,
   openEditDialog,
   openDeleteDialog,
-  openForceDeleteDialog,
   hasWorkEntries,
 }: SchoolsListProps) => {
   return (
@@ -80,31 +72,13 @@ export const SchoolsList = ({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem 
-                          onClick={() => openDeleteDialog(school)}
-                          className={hasWorkEntries(school.id) ? "text-gray-400 cursor-not-allowed" : ""}
-                          disabled={hasWorkEntries(school.id)}
-                        >
-                          {hasWorkEntries(school.id) && (
-                            <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
-                          )}
-                          Eliminar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openForceDeleteDialog(school)}>
-                          Eliminar y restablecer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openDeleteDialog(school)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

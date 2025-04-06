@@ -28,14 +28,11 @@ interface SchoolDialogsProps {
   setIsEditDialogOpen: (isOpen: boolean) => void;
   isDeleteDialogOpen: boolean;
   setIsDeleteDialogOpen: (isOpen: boolean) => void;
-  isForceDeleteDialogOpen: boolean;
-  setIsForceDeleteDialogOpen: (isOpen: boolean) => void;
   currentSchool: School | null;
   hasWorkEntries: (schoolId: string) => boolean;
   handleAddSubmit: (data: { name: string }) => void;
   handleEditSubmit: (data: { name: string }) => void;
   handleDelete: () => void;
-  handleForceDelete: () => void;
 }
 
 export const SchoolDialogs = ({
@@ -45,14 +42,11 @@ export const SchoolDialogs = ({
   setIsEditDialogOpen,
   isDeleteDialogOpen,
   setIsDeleteDialogOpen,
-  isForceDeleteDialogOpen,
-  setIsForceDeleteDialogOpen,
   currentSchool,
   hasWorkEntries,
   handleAddSubmit,
   handleEditSubmit,
   handleDelete,
-  handleForceDelete,
 }: SchoolDialogsProps) => {
   return (
     <>
@@ -94,13 +88,13 @@ export const SchoolDialogs = ({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente este colegio.
+              Esta acción no se puede deshacer. Se eliminará permanentemente este colegio y todos sus registros de horas asociados.
               {currentSchool && hasWorkEntries(currentSchool.id) && (
                 <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-amber-700 flex items-start gap-2">
                   <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
                   <div>
-                    <p className="font-medium">No se puede eliminar este colegio</p>
-                    <p className="text-sm">Este colegio tiene registros de horas asociados. Para eliminarlo, usa la opción "Eliminar y restablecer" que también eliminará todos los registros de horas.</p>
+                    <p className="font-medium">Atención</p>
+                    <p className="text-sm">Este colegio tiene registros de horas asociados. Los registros históricos se mantendrán pero no se podrán añadir más horas a este colegio.</p>
                   </div>
                 </div>
               )}
@@ -110,27 +104,9 @@ export const SchoolDialogs = ({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete} 
-              className={`bg-red-600 hover:bg-red-700 ${hasWorkEntries(currentSchool?.id || '') ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={currentSchool && hasWorkEntries(currentSchool.id)}
+              className="bg-red-600 hover:bg-red-700"
             >
               Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={isForceDeleteDialogOpen} onOpenChange={setIsForceDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente este colegio y todos sus registros de horas asociados.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleForceDelete} className="bg-red-600 hover:bg-red-700">
-              Eliminar y restablecer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
