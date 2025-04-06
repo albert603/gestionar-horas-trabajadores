@@ -53,3 +53,14 @@ export interface Role {
     delete: boolean;
   };
 }
+
+export interface HistoryLog {
+  id: string;
+  action: string;
+  description: string;
+  timestamp: string;
+  performedBy: string;
+  entityType?: string;
+  entityName?: string;
+  details?: string;
+}
