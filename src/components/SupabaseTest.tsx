@@ -23,25 +23,25 @@ const SupabaseTest = () => {
     setError(null);
     
     try {
-      // Probar la conexión obteniendo los empleados
-      const { data: employees, error: employeesError } = await (supabase
-        .from('employees' as any)
-        .select('*') as any) as { data: SupabaseData[] | null, error: any };
+      // Using a function to cast the Supabase client to any to bypass TypeScript checks
+      const fetchData = async (tableName: string) => {
+        // @ts-ignore - Bypass TypeScript checking
+        const { data, error } = await supabase.from(tableName).select('*');
+        
+        if (error) {
+          throw new Error(`Error al obtener ${tableName}: ${error.message}`);
+        }
+        
+        return { data, error };
+      };
       
-      if (employeesError) {
-        throw new Error(`Error al obtener empleados: ${employeesError.message}`);
-      }
+      // Fetch employees data
+      const { data: employees } = await fetchData('employees');
       
-      // Probar obteniendo las escuelas
-      const { data: schools, error: schoolsError } = await (supabase
-        .from('schools' as any)
-        .select('*') as any) as { data: SupabaseData[] | null, error: any };
+      // Fetch schools data
+      const { data: schools } = await fetchData('schools');
       
-      if (schoolsError) {
-        throw new Error(`Error al obtener escuelas: ${schoolsError.message}`);
-      }
-      
-      // Si llegamos aquí, la conexión fue exitosa
+      // If we reach here, the connection was successful
       setIsConnected(true);
       setEmployeesCount(employees?.length || 0);
       setSchoolsCount(schools?.length || 0);
