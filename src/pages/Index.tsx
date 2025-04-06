@@ -21,7 +21,10 @@ const Index = () => {
     setIsLoading(true);
     try {
       // Simple test query to check connection
-      const { error } = await supabase.from('employees').select('id').limit(1);
+      const { error } = await supabase
+        .from('employees')
+        .select('id')
+        .limit(1) as { data: any[], error: any };
       
       if (error) {
         throw error;

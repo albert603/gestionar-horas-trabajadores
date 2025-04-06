@@ -40,7 +40,9 @@ const DashboardSummary = () => {
       // If admin, fetch counts for all employees and schools
       if (isAdmin) {
         // Fetch all employees
-        const { data: employees, error: employeesError } = await supabase.from('employees').select('*');
+        const { data: employees, error: employeesError } = await supabase
+          .from('employees')
+          .select('*') as { data: any[], error: any };
         
         if (employeesError) {
           throw new Error(`Error al obtener empleados: ${employeesError.message}`);
@@ -49,7 +51,9 @@ const DashboardSummary = () => {
         setEmployeesCount(employees?.length || 0);
         
         // Fetch all schools
-        const { data: schools, error: schoolsError } = await supabase.from('schools').select('*');
+        const { data: schools, error: schoolsError } = await supabase
+          .from('schools')
+          .select('*') as { data: any[], error: any };
         
         if (schoolsError) {
           throw new Error(`Error al obtener escuelas: ${schoolsError.message}`);
