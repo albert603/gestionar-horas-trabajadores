@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { WorkEntry, EditRecord, Employee } from '@/types';
+import { WorkEntry, EditRecord, Employee, School } from '@/types';
 import { useAddHistoryLog } from '@/hooks/useHistoryLog';
 
 interface WorkEntryContextType {

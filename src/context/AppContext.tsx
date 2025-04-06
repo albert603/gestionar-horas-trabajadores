@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
 import { EmployeeProvider, useEmployee } from './EmployeeContext';
@@ -7,7 +6,7 @@ import { WorkEntryProvider, useWorkEntry } from './WorkEntryContext';
 import { PositionProvider, usePosition } from './PositionContext';
 import { RoleProvider, useRole } from './RoleContext';
 import { HistoryProvider, useHistory } from '@/hooks/useHistoryLog';
-import { Employee, School, WorkEntry, EditRecord, Position, Role } from '@/types';
+import { Employee, School, WorkEntry, EditRecord, Position, Role, HistoryLog } from '@/types';
 
 // Initial data
 const initialEmployees: Employee[] = [

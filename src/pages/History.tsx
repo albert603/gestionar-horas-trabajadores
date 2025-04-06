@@ -37,7 +37,7 @@ import {
   Briefcase, 
   Shield 
 } from "lucide-react";
-import { HistoryLog } from "@/context/AppContext";
+import { HistoryLog } from "@/types";
 
 const History = () => {
   const { getHistoryLogs } = useApp();
