@@ -24,18 +24,18 @@ const SupabaseTest = () => {
     
     try {
       // Probar la conexión obteniendo los empleados
-      const { data: employees, error: employeesError } = await supabase
-        .from('employees')
-        .select('*') as { data: SupabaseData[] | null, error: any };
+      const { data: employees, error: employeesError } = await (supabase
+        .from('employees' as any)
+        .select('*') as any) as { data: SupabaseData[] | null, error: any };
       
       if (employeesError) {
         throw new Error(`Error al obtener empleados: ${employeesError.message}`);
       }
       
       // Probar obteniendo las escuelas
-      const { data: schools, error: schoolsError } = await supabase
-        .from('schools')
-        .select('*') as { data: SupabaseData[] | null, error: any };
+      const { data: schools, error: schoolsError } = await (supabase
+        .from('schools' as any)
+        .select('*') as any) as { data: SupabaseData[] | null, error: any };
       
       if (schoolsError) {
         throw new Error(`Error al obtener escuelas: ${schoolsError.message}`);
