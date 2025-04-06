@@ -136,8 +136,8 @@ const Schools = () => {
   const handleDelete = () => {
     try {
       if (currentSchool) {
-        const success = deleteSchool(currentSchool.id);
-        if (success) {
+        const result = deleteSchool(currentSchool.id);
+        if (result) {
           toast({
             title: "Colegio eliminado",
             description: "El colegio se ha eliminado correctamente.",
@@ -168,22 +168,14 @@ const Schools = () => {
   const handleForceDelete = () => {
     try {
       if (currentSchool) {
-        const success = deleteSchoolAndResetHours(currentSchool.id);
-        if (success) {
-          toast({
-            title: "Colegio eliminado",
-            description: "El colegio y todos sus registros asociados han sido eliminados.",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "Hubo un problema al eliminar el colegio y sus registros.",
-            variant: "destructive",
-          });
-        }
+        deleteSchoolAndResetHours(currentSchool.id);
+        toast({
+          title: "Colegio eliminado",
+          description: "El colegio y todos sus registros asociados han sido eliminados.",
+        });
+        setIsForceDeleteDialogOpen(false);
+        setCurrentSchool(null);
       }
-      setIsForceDeleteDialogOpen(false);
-      setCurrentSchool(null);
     } catch (error) {
       console.error("Error al eliminar colegio y restablecer horas:", error);
       toast({
