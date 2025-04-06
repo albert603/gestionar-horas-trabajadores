@@ -16,17 +16,27 @@ import SchoolMonthlyReport from "./pages/SchoolMonthlyReport";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Protected route component
 const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, allowedRoles?: string[] }) => {
   const { isAuthenticated, currentUser } = useApp();
   
+  // Redirect to login if user is not authenticated
   if (!isAuthenticated) {
+    console.log("User not authenticated, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
-  // If roles are specified, check if user has required role
+  // Check if user has required role
   if (allowedRoles && currentUser?.role && !allowedRoles.includes(currentUser.role)) {
     console.log('Access denied. User role:', currentUser.role, 'Allowed roles:', allowedRoles);
     return <Navigate to="/" replace />;
@@ -59,10 +69,10 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AppProvider>
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
           <AppRoutes />
+          <Toaster />
+          <Sonner />
         </BrowserRouter>
       </AppProvider>
     </TooltipProvider>
