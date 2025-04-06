@@ -13,7 +13,7 @@ import { AppProviderInner } from './ConnectorProviders';
 import { CombinedContextProvider } from './CombinedContextProvider';
 
 // Export the AppContextType and useApp hook
-export { AppContextType } from './AppContextType';
+export type { AppContextType } from './AppContextType';
 export { useApp } from './useApp';
 
 // Combined context that wraps all individual contexts
