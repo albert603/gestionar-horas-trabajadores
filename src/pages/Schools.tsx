@@ -130,6 +130,7 @@ const Schools = () => {
         description: "Hubo un problema al actualizar el colegio.",
         variant: "destructive",
       });
+      setIsEditDialogOpen(false);
     }
   };
 
@@ -142,8 +143,6 @@ const Schools = () => {
             title: "Colegio eliminado",
             description: "El colegio se ha eliminado correctamente.",
           });
-          setIsDeleteDialogOpen(false);
-          setCurrentSchool(null);
         } else {
           toast({
             title: "No se puede eliminar",
@@ -152,8 +151,11 @@ const Schools = () => {
           });
           setIsDeleteDialogOpen(false);
           setIsForceDeleteDialogOpen(true);
+          return;
         }
       }
+      setIsDeleteDialogOpen(false);
+      setCurrentSchool(null);
     } catch (error) {
       console.error("Error al eliminar colegio:", error);
       toast({
@@ -173,9 +175,9 @@ const Schools = () => {
           title: "Colegio eliminado",
           description: "El colegio y todos sus registros asociados han sido eliminados.",
         });
-        setIsForceDeleteDialogOpen(false);
-        setCurrentSchool(null);
       }
+      setIsForceDeleteDialogOpen(false);
+      setCurrentSchool(null);
     } catch (error) {
       console.error("Error al eliminar colegio y restablecer horas:", error);
       toast({
@@ -184,6 +186,7 @@ const Schools = () => {
         variant: "destructive",
       });
       setIsForceDeleteDialogOpen(false);
+      setCurrentSchool(null);
     }
   };
 

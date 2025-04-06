@@ -175,15 +175,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const addHistoryLog = (action: string, description: string, performedBy: string = currentUser?.name || "System") => {
-    const newLog: HistoryLog = {
-      id: uuidv4(),
-      action,
-      description,
-      timestamp: new Date().toISOString(),
-      performedBy,
-      entityType: action.toLowerCase(),
-    };
-    setHistoryLogs(prev => [newLog, ...prev]);
+    try {
+      const newLog: HistoryLog = {
+        id: uuidv4(),
+        action,
+        description,
+        timestamp: new Date().toISOString(),
+        performedBy,
+        entityType: action.toLowerCase(),
+      };
+      setHistoryLogs(prev => [newLog, ...prev]);
+    } catch (error) {
+      console.error("Error adding history log:", error);
+    }
   };
 
   const login = (username: string, password: string): boolean => {
@@ -269,7 +273,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addHistoryLog("Actualizar", `Se actualizó el colegio ${school.name}`);
   };
 
-  const deleteSchool = (id: string) => {
+  const deleteSchool = (id: string): boolean => {
     try {
       const hasWorkEntries = workEntries.some(entry => entry.schoolId === id);
       if (hasWorkEntries) {
@@ -289,7 +293,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const deleteSchoolAndResetHours = (id: string) => {
+  const deleteSchoolAndResetHours = (id: string): void => {
     try {
       const school = schools.find(s => s.id === id);
       
@@ -309,13 +313,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           "Eliminar", 
           `Se eliminó el colegio ${school.name} y todos sus registros asociados`
         );
-        
-        return true;
       }
-      return false;
     } catch (error) {
       console.error("Error al eliminar colegio y restablecer horas:", error);
-      return false;
     }
   };
 
