@@ -26,12 +26,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Edit, Trash } from "lucide-react";
+import { Shield, Edit, Trash, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -50,12 +49,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 
 const RolesPage = () => {
-  const { roles, addRole, updateRole, deleteRole } = useApp();
+  const { roles, addRole, updateRole, deleteRole, employees } = useApp();
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteAlert, setOpenDeleteAlert] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | null>(null);
+  const { toast } = useToast();
   const [formData, setFormData] = useState<{
     name: "Administrador" | "Editor" | "Usuario";
     permissions: {
@@ -110,8 +111,56 @@ const RolesPage = () => {
     setOpenDialog(false);
   };
 
+  const canDeleteRole = (roleId: string) => {
+    const role = roles.find(r => r.id === roleId);
+    
+    // Si no es un rol de Administrador, se puede eliminar
+    if (role?.name !== "Administrador") {
+      return true;
+    }
+    
+    // Contar cuántos usuarios tienen rol de administrador
+    const adminRoles = roles.filter(r => r.name === "Administrador");
+    
+    // Si es el único rol de administrador existente, no se puede eliminar
+    if (adminRoles.length <= 1) {
+      return false;
+    }
+    
+    // Verificar si hay usuarios usando este rol específico de administrador
+    const usersWithThisAdminRole = employees.filter(e => e.role === "Administrador");
+    
+    // Si hay usuarios con este rol y es el único rol de administrador, no se puede eliminar
+    return !(usersWithThisAdminRole.length > 0 && adminRoles.length <= 1);
+  };
+
+  const handleDeleteClick = (role: Role) => {
+    if (role.name === "Administrador" && !canDeleteRole(role.id)) {
+      toast({
+        title: "No se puede eliminar",
+        description: "No se puede eliminar el único rol de Administrador. Debe existir al menos un administrador en el sistema.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setOpenDeleteAlert(role.id);
+  };
+
   const handleDeleteConfirm = () => {
     if (openDeleteAlert) {
+      const roleToDelete = roles.find(r => r.id === openDeleteAlert);
+      
+      if (roleToDelete?.name === "Administrador" && !canDeleteRole(openDeleteAlert)) {
+        toast({
+          title: "No se puede eliminar",
+          description: "No se puede eliminar el único rol de Administrador. Debe existir al menos un administrador en el sistema.",
+          variant: "destructive",
+        });
+        setOpenDeleteAlert(null);
+        return;
+      }
+      
       deleteRole(openDeleteAlert);
       setOpenDeleteAlert(null);
     }
@@ -193,8 +242,13 @@ const RolesPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-500 hover:text-red-600"
-                      onClick={() => setOpenDeleteAlert(role.id)}
+                      className={`${
+                        role.name === "Administrador" && !canDeleteRole(role.id)
+                          ? "text-gray-400"
+                          : "text-red-500 hover:text-red-600"
+                      }`}
+                      onClick={() => handleDeleteClick(role)}
+                      disabled={role.name === "Administrador" && !canDeleteRole(role.id)}
                     >
                       <Trash className="h-4 w-4 mr-1" />
                       Eliminar

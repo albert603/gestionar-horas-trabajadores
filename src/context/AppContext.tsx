@@ -1,6 +1,3 @@
-
-// No modificamos el archivo completo por su longitud, solo la parte relevante del login y el manejo de roles
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Employee, School, WorkEntry, EditRecord, Position, Role } from "../types";
 import { generateId, initialEmployees, initialWorkEntries, initialSchools } from "../lib/data";
@@ -67,7 +64,6 @@ export interface HistoryLog {
   details?: string;
 }
 
-// Enhanced initial employees with usernames and passwords and fixed admin role
 const enhancedInitialEmployees = [
   ...initialEmployees.map(emp => ({
     ...emp,
@@ -75,7 +71,6 @@ const enhancedInitialEmployees = [
     password: 'password',
     role: 'Usuario'
   })),
-  // Admin with correct role
   {
     id: 'emp-admin',
     name: 'Juan Perez',
@@ -87,7 +82,6 @@ const enhancedInitialEmployees = [
     password: 'admin',
     role: 'Administrador'
   },
-  // Regular user
   {
     id: 'emp-user',
     name: 'Maria Lopez',
@@ -150,7 +144,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   
   const { toast } = useToast();
 
-  // Check for stored authentication on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
@@ -160,16 +153,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  // Login function with correct role handling
   const login = (username: string, password: string): boolean => {
     const user = employees.find(e => 
       e.username === username && e.password === password && e.active
     );
     
     if (user) {
-      // Asegurarse de que los usuarios tengan el rol correcto según sus credenciales
       if (username === 'admin' && password === 'admin') {
-        // Forzar el rol de Administrador para usuario admin
         const adminUser = {
           ...user,
           role: 'Administrador'
@@ -178,7 +168,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', JSON.stringify(adminUser));
       } else if (username === 'user' && password === 'user') {
-        // Forzar el rol de Usuario para el usuario user
         const regularUser = {
           ...user,
           role: 'Usuario'
@@ -187,13 +176,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', JSON.stringify(regularUser));
       } else {
-        // Para otros usuarios, mantener su rol asignado
         setCurrentUser(user);
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', JSON.stringify(user));
       }
       
-      // Registrar acción de inicio de sesión
       const newLog: HistoryLog = {
         id: generateId(),
         action: "create",
@@ -213,10 +200,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return false;
   };
 
-  // Logout function
   const logout = () => {
     if (currentUser) {
-      // Log logout action
       const newLog: HistoryLog = {
         id: generateId(),
         action: "update",
@@ -236,7 +221,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.removeItem('currentUser');
   };
 
-  // Modify addEmployee to ensure it has username and password
   const addEmployee = (employee: Omit<Employee, "id">) => {
     const username = employee.username || employee.name.toLowerCase().replace(' ', '');
     const password = employee.password || 'password';
@@ -276,7 +260,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updateEmployee = (employee: Employee) => {
     setEmployees(employees.map(e => (e.id === employee.id ? employee : e)));
     
-    // If updating the current user, update the currentUser state and localStorage
     if (currentUser && employee.id === currentUser.id) {
       setCurrentUser(employee);
       localStorage.setItem('currentUser', JSON.stringify(employee));
@@ -607,7 +590,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         description: "Este rol no puede ser eliminado porque está siendo utilizado por empleados.",
         variant: "destructive"
       });
-      return;
+      return false;
+    }
+    
+    if (role?.name === "Administrador") {
+      const adminRoles = roles.filter(r => r.name === "Administrador");
+      if (adminRoles.length <= 1) {
+        toast({
+          title: "Error al eliminar",
+          description: "No se puede eliminar el único rol de Administrador. Debe existir al menos un administrador en el sistema.",
+          variant: "destructive"
+        });
+        return false;
+      }
     }
     
     setRoles(roles.filter(r => r.id !== id));
@@ -615,6 +610,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       title: "Rol eliminado",
       description: role ? `El rol ${role.name} ha sido eliminado correctamente.` : "Rol eliminado correctamente"
     });
+    return true;
   };
 
   const getEmployeeById = (id: string) => {
