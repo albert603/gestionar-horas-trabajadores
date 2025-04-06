@@ -47,14 +47,17 @@ export const EmployeeProvider: React.FC<{
 
   const deleteEmployee = (id: string) => {
     const employee = employees.find(e => e.id === id);
+    
+    // Verificar si es el último administrador
     if (employee?.role === "Administrador") {
-      const adminCount = employees.filter(e => e.role === "Administrador").length;
-      if (adminCount <= 1) {
-        addHistoryLog("Error", "Intento de eliminar el último administrador", "Sistema");
+      const adminCount = employees.filter(e => e.role === "Administrador" && e.id !== id).length;
+      if (adminCount < 1) {
+        addHistoryLog("Error", "No se puede eliminar el último administrador", "Sistema");
         return;
       }
     }
     
+    // Eliminar el empleado completamente en lugar de marcarlo como inactivo
     setEmployees(prev => prev.filter(e => e.id !== id));
     
     addHistoryLog("Eliminar", `Se eliminó el empleado ${employee?.name || id}`);

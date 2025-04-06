@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -33,6 +32,7 @@ import { Employee } from "@/types";
 import { Pencil, Trash2, UserPlus, Mail, Phone, Shield, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 
 const Employees = () => {
   const { employees, addEmployee, updateEmployee, deleteEmployee, roles } = useApp();
@@ -41,6 +41,7 @@ const Employees = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredEmployees = employees.filter((employee) =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,6 +52,10 @@ const Employees = () => {
   const handleAddSubmit = (data: Omit<Employee, "id" | "active">) => {
     addEmployee({ ...data, active: true });
     setIsAddDialogOpen(false);
+    toast({
+      title: "Empleado añadido",
+      description: `${data.name} ha sido añadido correctamente.`,
+    });
   };
 
   const handleEditSubmit = (data: Omit<Employee, "id" | "active">) => {
@@ -59,11 +64,33 @@ const Employees = () => {
     }
     setIsEditDialogOpen(false);
     setCurrentEmployee(null);
+    toast({
+      title: "Empleado actualizado",
+      description: `${data.name} ha sido actualizado correctamente.`,
+    });
   };
 
   const handleDelete = () => {
     if (currentEmployee) {
+      if (currentEmployee.role === "Administrador") {
+        const adminCount = employees.filter(e => e.role === "Administrador").length;
+        if (adminCount <= 1) {
+          toast({
+            title: "Error",
+            description: "No se puede eliminar el último administrador del sistema.",
+            variant: "destructive",
+          });
+          setIsDeleteDialogOpen(false);
+          setCurrentEmployee(null);
+          return;
+        }
+      }
+      
       deleteEmployee(currentEmployee.id);
+      toast({
+        title: "Empleado eliminado",
+        description: `${currentEmployee.name} ha sido eliminado permanentemente.`,
+      });
     }
     setIsDeleteDialogOpen(false);
     setCurrentEmployee(null);
@@ -79,7 +106,6 @@ const Employees = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  // Helper function to get badge variant based on role
   const getRoleBadgeVariant = (role?: string) => {
     switch (role) {
       case "Administrador":
@@ -91,7 +117,6 @@ const Employees = () => {
     }
   };
 
-  // Verificar si un empleado es el único administrador
   const isLastAdmin = (employee: Employee) => {
     if (employee.role !== "Administrador") return false;
     
@@ -196,7 +221,6 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* Add Employee Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -212,7 +236,6 @@ const Employees = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Employee Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -231,14 +254,13 @@ const Employees = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminará permanentemente a{" "}
-              <strong>{currentEmployee?.name}</strong> del sistema y todos sus registros de horas.
+              <strong>{currentEmployee?.name}</strong> del sistema y todos los registros futuros de este usuario se verán afectados.
               {currentEmployee && currentEmployee.role === "Administrador" && (
                 <div className="mt-2 flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
                   <AlertTriangle className="h-4 w-4" />
@@ -250,7 +272,7 @@ const Employees = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Eliminar
+              Eliminar Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
