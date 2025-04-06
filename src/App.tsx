@@ -47,11 +47,10 @@ const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, a
 
 // Routes configuration with role-based access
 const AppRoutes = () => {
-  const { isAuthenticated } = useApp();
-  
+  // Ensure the initial route is checked for authentication
   return (
     <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/" element={<ProtectedRoute element={<Index />} />} />
       <Route path="/employees" element={<ProtectedRoute element={<Employees />} allowedRoles={["Administrador"]} />} />
       <Route path="/hours" element={<ProtectedRoute element={<Hours />} />} />
