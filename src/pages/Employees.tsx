@@ -34,6 +34,7 @@ import { Pencil, Trash2, UserPlus, Mail, Phone, Shield, AlertTriangle } from "lu
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Employees = () => {
   const { employees, addEmployee, updateEmployee, deleteEmployee, roles, currentUser } = useApp();
@@ -42,6 +43,7 @@ const Employees = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const filteredEmployees = employees.filter((employee) =>
@@ -51,57 +53,134 @@ const Employees = () => {
   );
 
   const handleAddSubmit = (data: Omit<Employee, "id" | "active">) => {
-    addEmployee({ ...data, active: true });
-    setIsAddDialogOpen(false);
-    toast({
-      title: "Empleado añadido",
-      description: `${data.name} ha sido añadido correctamente.`,
-    });
-  };
-
-  const handleEditSubmit = (data: Omit<Employee, "id" | "active">) => {
-    if (currentEmployee) {
-      // Asegurarnos de conservar el ID y el estado activo del empleado
-      const updatedEmployee = { 
-        ...currentEmployee,
-        ...data, 
-        id: currentEmployee.id, 
-        active: currentEmployee.active 
-      };
-      
-      // Llamada a updateEmployee con el empleado actualizado
-      updateEmployee(updatedEmployee);
-      
-      toast({
-        title: "Empleado actualizado",
-        description: `${data.name} ha sido actualizado correctamente.`,
-      });
-    }
-    setIsEditDialogOpen(false);
-    setCurrentEmployee(null);
-  };
-
-  const handleDelete = () => {
-    if (currentEmployee) {
-      if (currentEmployee.role === "Administrador") {
-        const adminCount = employees.filter(e => e.role === "Administrador").length;
-        if (adminCount <= 1) {
+    try {
+      // Validación adicional para evitar nombres de usuario duplicados
+      if (data.username) {
+        const existingEmployee = employees.find(e => e.username === data.username && e.id !== currentEmployee?.id);
+        if (existingEmployee) {
+          setFormError("El nombre de usuario ya está en uso. Por favor, elija otro.");
           toast({
-            title: "Error",
-            description: "No se puede eliminar el último administrador del sistema.",
+            title: "Error al crear empleado",
+            description: "El nombre de usuario ya está en uso. Por favor, elija otro.",
             variant: "destructive",
           });
-          setIsDeleteDialogOpen(false);
-          setCurrentEmployee(null);
           return;
         }
       }
       
-      deleteEmployee(currentEmployee.id);
+      addEmployee({ ...data, active: true });
+      setIsAddDialogOpen(false);
+      setFormError(null);
       toast({
-        title: "Empleado eliminado",
-        description: `${currentEmployee.name} ha sido eliminado permanentemente.`,
+        title: "Empleado añadido",
+        description: `${data.name} ha sido añadido correctamente.`,
       });
+    } catch (error) {
+      console.error("Error al añadir empleado:", error);
+      setFormError("Ha ocurrido un error al añadir el empleado. Por favor, inténtelo de nuevo.");
+      toast({
+        title: "Error",
+        description: "Ha ocurrido un error al añadir el empleado. Por favor, inténtelo de nuevo.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditSubmit = (data: Omit<Employee, "id" | "active">) => {
+    if (currentEmployee) {
+      try {
+        // Validación para evitar nombres de usuario duplicados
+        if (data.username) {
+          const existingEmployee = employees.find(e => 
+            e.username === data.username && e.id !== currentEmployee.id
+          );
+          
+          if (existingEmployee) {
+            setFormError("El nombre de usuario ya está en uso. Por favor, elija otro.");
+            toast({
+              title: "Error al actualizar empleado",
+              description: "El nombre de usuario ya está en uso. Por favor, elija otro.",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+        
+        // Validación para roles de administrador
+        if (currentEmployee.role === "Administrador" && data.role !== "Administrador") {
+          const adminCount = employees.filter(e => e.role === "Administrador" && e.id !== currentEmployee.id).length;
+          if (adminCount < 1) {
+            setFormError("No se puede cambiar el rol del último administrador del sistema.");
+            toast({
+              title: "Error al actualizar empleado",
+              description: "No se puede cambiar el rol del último administrador del sistema.",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+        
+        // Asegurarnos de conservar el ID y el estado activo del empleado
+        const updatedEmployee = { 
+          ...currentEmployee,
+          ...data, 
+          id: currentEmployee.id, 
+          active: currentEmployee.active 
+        };
+        
+        // Llamada a updateEmployee con el empleado actualizado
+        updateEmployee(updatedEmployee);
+        
+        setFormError(null);
+        setIsEditDialogOpen(false);
+        setCurrentEmployee(null);
+        
+        toast({
+          title: "Empleado actualizado",
+          description: `${data.name} ha sido actualizado correctamente.`,
+        });
+      } catch (error) {
+        console.error("Error al actualizar empleado:", error);
+        setFormError("Ha ocurrido un error al actualizar el empleado. Por favor, inténtelo de nuevo.");
+        toast({
+          title: "Error",
+          description: "Ha ocurrido un error al actualizar el empleado. Por favor, inténtelo de nuevo.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    if (currentEmployee) {
+      try {
+        if (currentEmployee.role === "Administrador") {
+          const adminCount = employees.filter(e => e.role === "Administrador").length;
+          if (adminCount <= 1) {
+            toast({
+              title: "Error",
+              description: "No se puede eliminar el último administrador del sistema.",
+              variant: "destructive",
+            });
+            setIsDeleteDialogOpen(false);
+            setCurrentEmployee(null);
+            return;
+          }
+        }
+        
+        deleteEmployee(currentEmployee.id);
+        toast({
+          title: "Empleado eliminado",
+          description: `${currentEmployee.name} ha sido eliminado permanentemente.`,
+        });
+      } catch (error) {
+        console.error("Error al eliminar empleado:", error);
+        toast({
+          title: "Error",
+          description: "Ha ocurrido un error al eliminar el empleado. Por favor, inténtelo de nuevo.",
+          variant: "destructive",
+        });
+      }
     }
     setIsDeleteDialogOpen(false);
     setCurrentEmployee(null);
@@ -111,6 +190,7 @@ const Employees = () => {
     // Asegurarse de que obtenemos una copia fresca del empleado
     const freshEmployee = { ...employee };
     setCurrentEmployee(freshEmployee);
+    setFormError(null);
     setIsEditDialogOpen(true);
   };
 
@@ -234,7 +314,10 @@ const Employees = () => {
         </div>
       </div>
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+        setIsAddDialogOpen(open);
+        if (!open) setFormError(null);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Añadir Empleado</DialogTitle>
@@ -242,14 +325,32 @@ const Employees = () => {
               Ingresa la información del nuevo empleado. Click en Crear cuando termines.
             </DialogDescription>
           </DialogHeader>
+          
+          {formError && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+          
           <EmployeeForm
             onSubmit={handleAddSubmit}
-            onCancel={() => setIsAddDialogOpen(false)}
+            onCancel={() => {
+              setIsAddDialogOpen(false);
+              setFormError(null);
+            }}
           />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setCurrentEmployee(null);
+          setFormError(null);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Empleado</DialogTitle>
@@ -257,11 +358,23 @@ const Employees = () => {
               Actualiza la información del empleado. Click en Actualizar cuando termines.
             </DialogDescription>
           </DialogHeader>
+          
+          {formError && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+          
           {currentEmployee && (
             <EmployeeForm
               initialData={currentEmployee}
               onSubmit={handleEditSubmit}
-              onCancel={() => setIsEditDialogOpen(false)}
+              onCancel={() => {
+                setIsEditDialogOpen(false);
+                setFormError(null);
+              }}
             />
           )}
         </DialogContent>
