@@ -288,9 +288,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteEmployee = (id: string) => {
     const employee = employees.find(e => e.id === id);
+    
     setEmployees(employees.filter(e => e.id !== id));
     
     setWorkEntries(workEntries.filter(entry => entry.employeeId !== id));
+    
+    const employeeWorkEntryIds = workEntries
+      .filter(entry => entry.employeeId === id)
+      .map(entry => entry.id);
+    
+    setEditRecords(editRecords.filter(record => !employeeWorkEntryIds.includes(record.workEntryId)));
     
     const newLog: HistoryLog = {
       id: generateId(),
@@ -300,14 +307,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityName: employee?.name,
       performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
-      details: "Empleado eliminado"
+      details: "Empleado eliminado con todos sus registros de horas y ediciones"
     };
     
     setHistoryLogs([newLog, ...historyLogs]);
     
     toast({
       title: "Empleado eliminado",
-      description: employee ? `${employee.name} ha sido eliminado correctamente.` : "Empleado eliminado correctamente"
+      description: employee ? `${employee.name} ha sido eliminado correctamente junto con todos sus registros asociados.` : "Empleado eliminado correctamente"
     });
   };
 
@@ -359,9 +366,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteSchool = (id: string) => {
     const school = schools.find(s => s.id === id);
     
-    const isSchoolInUse = workEntries.some(entry => entry.schoolId === id);
+    const relatedEntries = workEntries.filter(entry => entry.schoolId === id);
     
-    if (isSchoolInUse) {
+    if (relatedEntries.length > 0) {
       toast({
         title: "Error al eliminar",
         description: "Este colegio no puede ser eliminado porque tiene registros de horas asociados. Use 'Eliminar y restablecer' para borrar todos sus registros.",
@@ -396,8 +403,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!school) return;
     
     const relatedEntries = workEntries.filter(entry => entry.schoolId === id);
+    const relatedEntryIds = relatedEntries.map(entry => entry.id);
     
     setWorkEntries(workEntries.filter(entry => entry.schoolId !== id));
+    
+    setEditRecords(editRecords.filter(record => !relatedEntryIds.includes(record.workEntryId)));
     
     setSchools(schools.filter(s => s.id !== id));
     
@@ -409,14 +419,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       entityName: school?.name,
       performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
-      details: `Colegio eliminado con ${relatedEntries.length} registros de horas`
+      details: `Colegio eliminado con ${relatedEntries.length} registros de horas y sus ediciones asociadas`
     };
     
     setHistoryLogs([newLog, ...historyLogs]);
     
     toast({
       title: "Colegio eliminado",
-      description: `${school.name} ha sido eliminado correctamente junto con todos sus registros de horas.`
+      description: `${school.name} ha sido eliminado correctamente junto con todos sus registros de horas y ediciones.`
     });
   };
 
@@ -504,23 +514,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteWorkEntry = (id: string) => {
+    const entry = workEntries.find(e => e.id === id);
+    
     setWorkEntries(workEntries.filter(e => e.id !== id));
+    
+    setEditRecords(editRecords.filter(record => record.workEntryId !== id));
+    
+    const employee = entry ? getEmployeeById(entry.employeeId) : null;
+    const school = entry ? getSchoolById(entry.schoolId) : null;
+    
     const newLog: HistoryLog = {
       id: generateId(),
       action: "delete",
       entityType: "workEntry",
       entityId: id,
-      entityName: "Desconocido",
+      entityName: employee && school ? `${employee.name} - ${school.name}` : "Desconocido",
       performedBy: currentUser?.name || "Sistema",
       timestamp: new Date().toISOString(),
-      details: "Registro eliminado"
+      details: "Registro eliminado con su historial de ediciones"
     };
     
     setHistoryLogs([newLog, ...historyLogs]);
     
     toast({
       title: "Registro eliminado",
-      description: "Las horas de trabajo se han eliminado correctamente."
+      description: "Las horas de trabajo y su historial de ediciones se han eliminado correctamente."
     });
   };
 
@@ -606,6 +624,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     
     setRoles(roles.filter(r => r.id !== id));
+    
+    const newLog: HistoryLog = {
+      id: generateId(),
+      action: "delete",
+      entityType: "role",
+      entityId: id,
+      entityName: role?.name,
+      performedBy: currentUser?.name || "Sistema",
+      timestamp: new Date().toISOString(),
+      details: "Rol eliminado"
+    };
+    
+    setHistoryLogs([newLog, ...historyLogs]);
+    
     toast({
       title: "Rol eliminado",
       description: role ? `El rol ${role.name} ha sido eliminado correctamente.` : "Rol eliminado correctamente"
