@@ -43,6 +43,9 @@ export const AuthProvider: React.FC<{
           setCurrentUser(foundUser);
           setIsAuthenticated(true);
           
+          // Update the parent state with the current user
+          updateEmployeeState(foundUser);
+          
           console.log("Session restored successfully:", foundUser.name);
         }
       } catch (e) {
@@ -54,7 +57,7 @@ export const AuthProvider: React.FC<{
     };
     
     checkSession();
-  }, [employees]);
+  }, [employees, updateEmployeeState]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
@@ -90,6 +93,9 @@ export const AuthProvider: React.FC<{
       // First update the state
       setCurrentUser(user);
       setIsAuthenticated(true);
+      
+      // Update the parent state with the current user
+      updateEmployeeState(user);
       
       // Then save to localStorage
       localStorage.setItem('currentUser', JSON.stringify(user));

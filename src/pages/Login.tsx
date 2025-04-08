@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,17 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Si el usuario ya está autenticado, redirigir automáticamente
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("Usuario ya autenticado, redirigiendo a la página principal");
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +45,8 @@ const Login = () => {
       const success = await login(username, password);
       
       if (success) {
-        // Navigate only after successful login
-        // Toast notification is now handled in the AuthContext
-        setTimeout(() => {
-          navigate("/");
-        }, 500);
+        // Redirigir inmediatamente después de un inicio de sesión exitoso
+        navigate("/");
       }
     } catch (error) {
       console.error("Login error:", error);
