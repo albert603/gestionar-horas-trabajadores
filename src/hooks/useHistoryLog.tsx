@@ -26,7 +26,7 @@ export const HistoryProvider: React.FC<{
         const { data, error } = await supabase
           .from('history_logs')
           .select('*')
-          .order('timestamp', { ascending: false }) as { data: any[], error: any };
+          .order('timestamp', { ascending: false });
         
         if (error) {
           throw error;
@@ -83,7 +83,7 @@ export const HistoryProvider: React.FC<{
           performed_by: newLog.performedBy,
           entity_type: newLog.entityType,
           timestamp: newLog.timestamp
-        }) as { error: any };
+        });
       
       if (error) {
         console.error("Error adding history log to Supabase:", error);
@@ -93,8 +93,6 @@ export const HistoryProvider: React.FC<{
           variant: "destructive"
         });
       }
-      
-      return Promise.resolve();
     } catch (error) {
       console.error("Error adding history log:", error);
       toast({
@@ -102,7 +100,6 @@ export const HistoryProvider: React.FC<{
         description: "No se pudo guardar el registro en el historial",
         variant: "destructive"
       });
-      return Promise.reject(error);
     }
   };
 
@@ -111,7 +108,7 @@ export const HistoryProvider: React.FC<{
       const { data, error } = await supabase
         .from('history_logs')
         .select('*')
-        .order('timestamp', { ascending: false }) as { data: any[], error: any };
+        .order('timestamp', { ascending: false });
       
       if (error) {
         throw error;

@@ -1,14 +1,16 @@
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Employee } from '@/types';
 import { useAddHistoryLog } from '@/hooks/useHistoryLog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 interface EmployeeContextType {
   employees: Employee[];
-  addEmployee: (employee: Omit<Employee, "id">) => void;
-  updateEmployee: (employee: Employee) => void;
-  deleteEmployee: (id: string) => void;
+  addEmployee: (employee: Omit<Employee, "id">) => Promise<void>;
+  updateEmployee: (employee: Employee) => Promise<void>;
+  deleteEmployee: (id: string) => Promise<void>;
   getEmployeeById: (id: string) => Employee | undefined;
 }
 
@@ -23,45 +25,151 @@ export const EmployeeProvider: React.FC<{
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const addHistoryLog = useAddHistoryLog();
 
-  const addEmployee = (employee: Omit<Employee, "id">) => {
-    const newEmployee: Employee = {
-      ...employee,
-      id: uuidv4(),
-      active: true
-    };
-    setEmployees(prev => [...prev, newEmployee]);
-    addHistoryLog("Añadir", `Se añadió el empleado ${newEmployee.name}`);
-  };
-
-  const updateEmployee = (employee: Employee) => {
-    // No hay restricciones para actualizar cualquier empleado, incluidos administradores
-    setEmployees(prev => 
-      prev.map(e => e.id === employee.id ? employee : e)
-    );
-    
-    if (currentUser && currentUser.id === employee.id) {
-      onUpdateEmployee(employee);
-    }
-    
-    addHistoryLog("Actualizar", `Se actualizó el empleado ${employee.name}`);
-  };
-
-  const deleteEmployee = (id: string) => {
-    const employee = employees.find(e => e.id === id);
-    
-    // Verificar si es el único administrador que queda antes de eliminarlo
-    if (employee?.role === "Administrador") {
-      const adminCount = employees.filter(e => e.role === "Administrador" && e.id !== id).length;
-      if (adminCount < 1) {
-        addHistoryLog("Error", "No se puede eliminar el último administrador", "Sistema");
-        return;
+  // Fetch employees from the database on component mount
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setEmployees(data as Employee[]);
+        }
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los empleados",
+          variant: "destructive"
+        });
       }
+    };
+    
+    fetchEmployees();
+  }, []);
+
+  const addEmployee = async (employee: Omit<Employee, "id">) => {
+    try {
+      const newEmployee: Employee = {
+        ...employee,
+        id: uuidv4(),
+        active: true
+      };
+      
+      // Insert employee into the database
+      const { error } = await supabase
+        .from('employees')
+        .insert(newEmployee);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state after successful database insertion
+      setEmployees(prev => [...prev, newEmployee]);
+      addHistoryLog("Añadir", `Se añadió el empleado ${newEmployee.name}`);
+      
+      toast({
+        title: "Empleado añadido",
+        description: `Se ha añadido a ${newEmployee.name} exitosamente`,
+      });
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo añadir el empleado",
+        variant: "destructive"
+      });
     }
-    
-    // Eliminar el empleado completamente en lugar de marcarlo como inactivo
-    setEmployees(prev => prev.filter(e => e.id !== id));
-    
-    addHistoryLog("Eliminar", `Se eliminó el empleado ${employee?.name || id}`);
+  };
+
+  const updateEmployee = async (employee: Employee) => {
+    try {
+      // Update employee in the database
+      const { error } = await supabase
+        .from('employees')
+        .update(employee)
+        .eq('id', employee.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state after successful database update
+      setEmployees(prev => 
+        prev.map(e => e.id === employee.id ? employee : e)
+      );
+      
+      if (currentUser && currentUser.id === employee.id) {
+        onUpdateEmployee(employee);
+      }
+      
+      addHistoryLog("Actualizar", `Se actualizó el empleado ${employee.name}`);
+      
+      toast({
+        title: "Empleado actualizado",
+        description: `Se ha actualizado a ${employee.name} exitosamente`,
+      });
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el empleado",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteEmployee = async (id: string) => {
+    try {
+      const employee = employees.find(e => e.id === id);
+      
+      // Verificar si es el único administrador que queda antes de eliminarlo
+      if (employee?.role === "Administrador") {
+        const adminCount = employees.filter(e => e.role === "Administrador" && e.id !== id).length;
+        if (adminCount < 1) {
+          addHistoryLog("Error", "No se puede eliminar el último administrador", "Sistema");
+          toast({
+            title: "Error",
+            description: "No se puede eliminar el último administrador",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
+      // Delete employee from the database
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state after successful database deletion
+      setEmployees(prev => prev.filter(e => e.id !== id));
+      
+      addHistoryLog("Eliminar", `Se eliminó el empleado ${employee?.name || id}`);
+      
+      toast({
+        title: "Empleado eliminado",
+        description: "El empleado ha sido eliminado exitosamente",
+      });
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el empleado",
+        variant: "destructive"
+      });
+    }
   };
 
   const getEmployeeById = (id: string) => {

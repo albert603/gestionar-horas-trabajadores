@@ -1,16 +1,16 @@
-
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { School, WorkEntry, Employee } from '@/types';
 import { useAddHistoryLog } from '@/hooks/useHistoryLog';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SchoolContextType {
   schools: School[];
-  addSchool: (school: Omit<School, "id">) => void;
-  updateSchool: (school: School) => void;
-  deleteSchool: (id: string) => boolean;
-  deleteSchoolAndResetHours: (id: string) => void;
+  addSchool: (school: Omit<School, "id">) => Promise<void>;
+  updateSchool: (school: School) => Promise<void>;
+  deleteSchool: (id: string) => Promise<boolean>;
+  deleteSchoolAndResetHours: (id: string) => Promise<void>;
   getSchoolById: (id: string) => School | undefined;
   getSchoolsByEmployee: (employeeId: string) => School[];
   getEmployeesBySchool: (schoolId: string) => Employee[];
@@ -42,14 +42,55 @@ export const SchoolProvider: React.FC<{
   const [schools, setSchools] = useState<School[]>(initialSchools);
   const addHistoryLog = useAddHistoryLog();
 
-  const addSchool = (school: Omit<School, "id">) => {
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setSchools(data as School[]);
+        }
+      } catch (error) {
+        console.error('Error fetching schools:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los colegios",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    fetchSchools();
+  }, []);
+
+  const addSchool = async (school: Omit<School, "id">) => {
     try {
       const newSchool: School = {
         ...school,
         id: uuidv4()
       };
+      
+      const { error } = await supabase
+        .from('schools')
+        .insert(newSchool);
+      
+      if (error) {
+        throw error;
+      }
+      
       setSchools(prev => [...prev, newSchool]);
       addHistoryLog("Añadir", `Se añadió el colegio ${newSchool.name}`);
+      
+      toast({
+        title: "Colegio añadido",
+        description: `Se ha añadido el colegio ${newSchool.name} exitosamente`,
+      });
     } catch (error) {
       console.error("Error al añadir colegio:", error);
       toast({
@@ -60,12 +101,27 @@ export const SchoolProvider: React.FC<{
     }
   };
 
-  const updateSchool = (school: School) => {
+  const updateSchool = async (school: School) => {
     try {
+      const { error } = await supabase
+        .from('schools')
+        .update(school)
+        .eq('id', school.id);
+      
+      if (error) {
+        throw error;
+      }
+      
       setSchools(prev => 
         prev.map(s => s.id === school.id ? school : s)
       );
+      
       addHistoryLog("Actualizar", `Se actualizó el colegio ${school.name}`);
+      
+      toast({
+        title: "Colegio actualizado",
+        description: `Se ha actualizado el colegio ${school.name} exitosamente`,
+      });
     } catch (error) {
       console.error("Error al actualizar colegio:", error);
       toast({
@@ -76,7 +132,7 @@ export const SchoolProvider: React.FC<{
     }
   };
 
-  const deleteSchool = (id: string): boolean => {
+  const deleteSchool = async (id: string): Promise<boolean> => {
     try {
       const hasWorkEntries = workEntries.some(entry => entry.schoolId === id);
       if (hasWorkEntries) {
@@ -85,8 +141,23 @@ export const SchoolProvider: React.FC<{
       
       const school = schools.find(s => s.id === id);
       if (school) {
+        const { error } = await supabase
+          .from('schools')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          throw error;
+        }
+        
         setSchools(prev => prev.filter(s => s.id !== id));
         addHistoryLog("Eliminar", `Se eliminó el colegio ${school.name}`);
+        
+        toast({
+          title: "Colegio eliminado",
+          description: `Se ha eliminado el colegio ${school.name} exitosamente`,
+        });
+        
         return true;
       }
       return false;
@@ -101,15 +172,27 @@ export const SchoolProvider: React.FC<{
     }
   };
 
-  const deleteSchoolAndResetHours = (id: string): void => {
+  const deleteSchoolAndResetHours = async (id: string): Promise<void> => {
     try {
       const school = schools.find(s => s.id === id);
       
       if (school) {
-        // Delete related work entries first
+        await supabase
+          .from('work_entries')
+          .delete()
+          .eq('school_id', id);
+        
+        const { error } = await supabase
+          .from('schools')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          throw error;
+        }
+        
         onDeleteWorkEntries(id);
         
-        // Then delete the school
         setSchools(prev => prev.filter(s => s.id !== id));
         
         addHistoryLog(

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Employee } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,7 +23,7 @@ export const AuthProvider: React.FC<{
 
   // Check for existing session on component mount
   useEffect(() => {
-    const checkSession = () => {
+    const checkSession = async () => {
       try {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -39,14 +40,31 @@ export const AuthProvider: React.FC<{
             return;
           }
           
-          // Set the authenticated user from local data instead of database
-          setCurrentUser(foundUser);
+          // Verify if user exists in database
+          const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('id', user.id)
+            .eq('active', true)
+            .single();
+            
+          if (error || !data) {
+            console.log("User not found in database or inactive:", error);
+            localStorage.removeItem('currentUser');
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            return;
+          }
+          
+          // Set the authenticated user from database data
+          const dbUser = data as Employee;
+          setCurrentUser(dbUser);
           setIsAuthenticated(true);
           
           // Update the parent state with the current user
-          updateEmployeeState(foundUser);
+          updateEmployeeState(dbUser);
           
-          console.log("Session restored successfully:", foundUser.name);
+          console.log("Session restored successfully:", dbUser.name);
         }
       } catch (e) {
         console.error("Error checking session:", e);
@@ -63,21 +81,16 @@ export const AuthProvider: React.FC<{
     try {
       console.log("Login attempt for username:", username);
       
-      // For debugging, log all available employees
-      console.log("Available employees:", employees.map(e => ({
-        username: e.username,
-        active: e.active,
-        role: e.role
-      })));
+      // First check if user exists in the database
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .eq('active', true)
+        .single();
       
-      // First check if user exists in the local data
-      const user = employees.find(e => 
-        e.username === username && 
-        e.password === password &&
-        e.active === true
-      );
-      
-      if (!user) {
+      if (error || !data) {
         console.log("Login failed: Invalid credentials or inactive user");
         toast({
           title: "Error de inicio de sesión",
@@ -87,7 +100,9 @@ export const AuthProvider: React.FC<{
         return false;
       }
       
-      // Login successful with local data
+      const user = data as Employee;
+      
+      // Login successful with database data
       console.log("Login successful for user:", user.name);
       
       // First update the state
@@ -109,6 +124,11 @@ export const AuthProvider: React.FC<{
       return true;
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Error del sistema",
+        description: "Ocurrió un error al procesar su solicitud.",
+        variant: "destructive",
+      });
       return false;
     }
   };
