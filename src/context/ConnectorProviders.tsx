@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth, AuthProvider } from './AuthContext';
 import { useWorkEntry, WorkEntryProvider } from './WorkEntryContext';
-import { useSchool, SchoolProvider } from './SchoolContext';
+import { useSchool, SchoolProvider } from './school/SchoolContext';
 import { PositionProvider } from './PositionContext';
 import { RoleProvider } from './RoleContext';
 import { useEmployee } from './EmployeeContext';
