@@ -18,7 +18,7 @@ export interface AppContextType {
   deleteEmployee: (id: string) => void;
   addSchool: (school: Omit<School, "id">) => void;
   updateSchool: (school: School) => void;
-  deleteSchool: (id: string) => boolean;
+  deleteSchool: (id: string) => Promise<boolean>;
   deleteSchoolAndResetHours: (id: string) => void;
   addWorkEntry: (entry: Omit<WorkEntry, "id">) => void;
   updateWorkEntry: (entry: WorkEntry, editorName: string) => void;

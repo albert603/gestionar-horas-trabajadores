@@ -20,7 +20,7 @@ export const CombinedContextProvider: React.FC<{ children: React.ReactNode }> = 
   const history = useHistory();
 
   // Combine all context values into one
-  const combinedContext = {
+  const combinedContext: AppContextType = {
     // Auth context
     isAuthenticated: auth.isAuthenticated,
     currentUser: auth.currentUser,
@@ -75,7 +75,7 @@ export const CombinedContextProvider: React.FC<{ children: React.ReactNode }> = 
     
     // History context
     getHistoryLogs: history.getHistoryLogs
-  } as AppContextType;
+  };
 
   // Create a context for the combined value
   const CombinedContext = createContext<AppContextType | undefined>(undefined);
