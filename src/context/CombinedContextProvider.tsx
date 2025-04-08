@@ -2,7 +2,7 @@
 import React, { createContext } from 'react';
 import { useAuth } from './AuthContext';
 import { useEmployee } from './EmployeeContext';
-import { useSchool } from './SchoolContext';
+import { useSchool } from './school/SchoolContext';
 import { useWorkEntry } from './WorkEntryContext';
 import { usePosition } from './PositionContext';
 import { useRole } from './RoleContext';
