@@ -25,15 +25,18 @@ export const AuthProvider: React.FC<{
   useEffect(() => {
     const checkSession = async () => {
       try {
+        console.log("Verificando sesión existente...");
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
           const user = JSON.parse(savedUser);
+          
+          console.log("Usuario encontrado en localStorage:", user.name);
           
           // Find the user in the local employees array
           const foundUser = employees.find(emp => emp.id === user.id && emp.active === true);
           
           if (!foundUser) {
-            console.log("User no longer exists or is inactive in local data");
+            console.error("Error: Usuario no encontrado en datos locales o inactivo");
             localStorage.removeItem('currentUser');
             setCurrentUser(null);
             setIsAuthenticated(false);
@@ -41,33 +44,41 @@ export const AuthProvider: React.FC<{
           }
           
           // Verify if user exists in database
-          const { data, error } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('id', user.id)
-            .eq('active', true)
-            .single();
+          try {
+            const { data, error } = await supabase
+              .from('employees')
+              .select('*')
+              .eq('id', user.id)
+              .eq('active', true)
+              .single();
+              
+            if (error || !data) {
+              console.error("Error: Usuario no encontrado en base de datos:", error);
+              localStorage.removeItem('currentUser');
+              setCurrentUser(null);
+              setIsAuthenticated(false);
+              return;
+            }
             
-          if (error || !data) {
-            console.log("User not found in database or inactive:", error);
+            // Set the authenticated user from database data
+            const dbUser = data as Employee;
+            console.log("Sesión restaurada para usuario:", dbUser.name);
+            setCurrentUser(dbUser);
+            setIsAuthenticated(true);
+            
+            // Update the parent state with the current user
+            updateEmployeeState(dbUser);
+          } catch (dbError) {
+            console.error("Error al verificar usuario en base de datos:", dbError);
             localStorage.removeItem('currentUser');
             setCurrentUser(null);
             setIsAuthenticated(false);
-            return;
           }
-          
-          // Set the authenticated user from database data
-          const dbUser = data as Employee;
-          setCurrentUser(dbUser);
-          setIsAuthenticated(true);
-          
-          // Update the parent state with the current user
-          updateEmployeeState(dbUser);
-          
-          console.log("Session restored successfully:", dbUser.name);
+        } else {
+          console.log("No hay sesión guardada en localStorage");
         }
       } catch (e) {
-        console.error("Error checking session:", e);
+        console.error("Error general al verificar sesión:", e);
         localStorage.removeItem('currentUser');
         setCurrentUser(null);
         setIsAuthenticated(false);
@@ -79,7 +90,7 @@ export const AuthProvider: React.FC<{
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      console.log("Login attempt for username:", username);
+      console.log("Intento de login para usuario:", username);
       
       // First check if user exists in the database
       const { data, error } = await supabase
@@ -91,7 +102,7 @@ export const AuthProvider: React.FC<{
         .single();
       
       if (error || !data) {
-        console.log("Login failed: Invalid credentials or inactive user");
+        console.error("Login fallido: Credenciales inválidas o usuario inactivo", error);
         toast({
           title: "Error de inicio de sesión",
           description: "Usuario o contraseña incorrectos.",
@@ -102,17 +113,16 @@ export const AuthProvider: React.FC<{
       
       const user = data as Employee;
       
-      // Login successful with database data
-      console.log("Login successful for user:", user.name);
+      console.log("Login exitoso para:", user.name);
       
-      // First update the state
+      // Update states
       setCurrentUser(user);
       setIsAuthenticated(true);
       
       // Update the parent state with the current user
       updateEmployeeState(user);
       
-      // Then save to localStorage
+      // Save to localStorage
       localStorage.setItem('currentUser', JSON.stringify(user));
       
       // Show toast notification
@@ -123,7 +133,7 @@ export const AuthProvider: React.FC<{
       
       return true;
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Error en proceso de login:", error);
       toast({
         title: "Error del sistema",
         description: "Ocurrió un error al procesar su solicitud.",
@@ -134,10 +144,14 @@ export const AuthProvider: React.FC<{
   };
 
   const logout = () => {
-    console.log("Logging out user:", currentUser?.name);
+    console.log("Cerrando sesión para usuario:", currentUser?.name);
     setCurrentUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('currentUser');
+    toast({
+      title: "Sesión cerrada",
+      description: "Has cerrado sesión correctamente",
+    });
   };
 
   const authContextValue: AuthContextType = {

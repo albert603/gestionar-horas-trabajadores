@@ -31,17 +31,20 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   const { isAuthenticated, currentUser } = useAuth();
   
+  console.log("Estado de autenticación en AppRoutes:", isAuthenticated);
+  console.log("Usuario actual:", currentUser?.name);
+  
   // Protected route component
   const ProtectedRoute = ({ element, allowedRoles }: { element: React.ReactNode, allowedRoles?: string[] }) => {
     // Redirect to login if user is not authenticated
     if (!isAuthenticated) {
-      console.log("User not authenticated, redirecting to login");
+      console.log("Usuario no autenticado, redirigiendo a login");
       return <Navigate to="/login" replace />;
     }
     
     // Check if user has required role
     if (allowedRoles && currentUser?.role && !allowedRoles.includes(currentUser.role)) {
-      console.log('Access denied. User role:', currentUser.role, 'Allowed roles:', allowedRoles);
+      console.log('Acceso denegado. Rol de usuario:', currentUser.role, 'Roles permitidos:', allowedRoles);
       return <Navigate to="/" replace />;
     }
     
@@ -51,7 +54,9 @@ const AppRoutes = () => {
   // Ensure the initial route is checked for authentication
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={
+        isAuthenticated ? <Navigate to="/" replace /> : <Login />
+      } />
       <Route path="/" element={<ProtectedRoute element={<Index />} />} />
       <Route path="/employees" element={<ProtectedRoute element={<Employees />} allowedRoles={["Administrador"]} />} />
       <Route path="/hours" element={<ProtectedRoute element={<Hours />} />} />

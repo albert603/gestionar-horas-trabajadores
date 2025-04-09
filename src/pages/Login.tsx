@@ -18,10 +18,11 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Si el usuario ya está autenticado, redirigir automáticamente
+  // Verificamos si el usuario ya está autenticado
   useEffect(() => {
+    console.log("Estado de autenticación en Login:", isAuthenticated);
     if (isAuthenticated) {
-      console.log("Usuario ya autenticado, redirigiendo a la página principal");
+      console.log("Usuario ya autenticado, redirigiendo a página principal");
       navigate("/");
     }
   }, [isAuthenticated, navigate]);
@@ -41,15 +42,18 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log("Attempting login with:", { username });
+      console.log("Intentando login con usuario:", username);
       const success = await login(username, password);
       
       if (success) {
-        // Redirigir inmediatamente después de un inicio de sesión exitoso
+        console.log("Login exitoso, redirigiendo a página principal");
+        // Redirigir después de un inicio de sesión exitoso
         navigate("/");
+      } else {
+        console.log("Login fallido");
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Error durante el proceso de login:", error);
       toast({
         title: "Error del sistema",
         description: "Ocurrió un error al procesar su solicitud.",
