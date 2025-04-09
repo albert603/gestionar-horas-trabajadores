@@ -33,6 +33,7 @@ export const SchoolReports = ({
       const year = date.getFullYear();
       const value = `${month}-${year}`;
       
+      // Use the proper format syntax for date-fns v4
       const formattedDate = format(date, "MMMM yyyy", { locale: es });
       options.push({ value, label: formattedDate });
     }
