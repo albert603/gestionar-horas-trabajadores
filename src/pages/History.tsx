@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useApp } from "@/context/AppContext";
+import { useApp } from "@/context/useApp";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -40,7 +40,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const History = () => {
   const { getHistoryLogs } = useApp();
@@ -54,8 +54,10 @@ const History = () => {
   const fetchHistoryLogs = async () => {
     setIsLoading(true);
     try {
+      console.log("Fetching history logs...");
       const logs = await getHistoryLogs();
-      setHistoryLogs(logs);
+      console.log("History logs loaded:", logs);
+      setHistoryLogs(logs || []);
     } catch (error) {
       console.error("Error al cargar el historial:", error);
       toast({

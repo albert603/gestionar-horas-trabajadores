@@ -1,106 +1,101 @@
 
-import React, { useEffect } from 'react';
-import { useAuth, AuthProvider } from './AuthContext';
-import { useWorkEntry, WorkEntryProvider } from './WorkEntryContext';
-import { useSchool, SchoolProvider } from './school/SchoolContext';
-import { PositionProvider } from './PositionContext';
-import { RoleProvider } from './RoleContext';
+import React from 'react';
+import { AuthProvider, useAuth } from './AuthContext';
 import { useEmployee } from './EmployeeContext';
+import { SchoolProvider, useSchool } from './school/SchoolContext';
+import { WorkEntryProvider, useWorkEntry } from './WorkEntryContext';
+import { PositionProvider, usePosition } from './PositionContext';
+import { RoleProvider, useRole } from './RoleContext';
 import { useHistory } from '@/hooks/useHistoryLog';
-import { CombinedContextProvider } from './CombinedContextProvider';
 import { Employee, School, Position, Role } from '@/types';
+import { CombinedContextProvider } from './CombinedContextProvider';
 
-// This connects WorkEntry provider with Auth data
-export const WorkEntryWithAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth();
-  const { 
-    workEntries, 
-    editRecords,
-    addWorkEntry, 
-    updateWorkEntry, 
-    deleteWorkEntry,
-    deleteWorkEntriesBySchool,
-    deleteWorkEntriesByEmployee 
-  } = useWorkEntry();
-
-  // Now update the WorkEntryProvider with auth data
-  useEffect(() => {
-    // This effect is needed to update the WorkEntryProvider when auth changes
-    // In a real implementation, you might need to do something here
-  }, [currentUser]);
-
-  return children;
+// Componente para conectar el contexto de WorkEntry con Auth
+export const WorkEntryWithAuthProvider: React.FC<{ 
+  children: React.ReactNode 
+}> = ({ children }) => {
+  const auth = useAuth();
+  
+  return (
+    <WorkEntryProvider
+      currentUser={auth.currentUser}
+    >
+      {children}
+    </WorkEntryProvider>
+  );
 };
 
-// This connects School provider with WorkEntry data
-export const SchoolWithWorkEntryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { 
-    workEntries, 
-    deleteWorkEntriesBySchool 
-  } = useWorkEntry();
-  const { 
-    schools,
-    updateSchool,
-    deleteSchool,
-    deleteSchoolAndResetHours
-  } = useSchool();
-
-  // Now update the SchoolProvider with workEntry data
-  useEffect(() => {
-    // This effect is needed to update the SchoolProvider when workEntries change
-    // In a real implementation, you might need to do something here
-  }, [workEntries]);
-
-  return children;
-};
-
-// Inner provider that uses Employee context
-export const AppProviderInner: React.FC<{ 
+// Componente para conectar el contexto de School con WorkEntry
+export const SchoolWithWorkEntryProvider: React.FC<{ 
   children: React.ReactNode;
-  initialSchools: School[];
-  initialPositions: Position[];
-  initialRoles: Role[];
-  setCurrentUser: (user: Employee | null) => void;
-}> = ({ 
-  children, 
-  initialSchools, 
-  initialPositions, 
-  initialRoles,
+  initialSchools?: School[];
+}> = ({ children, initialSchools = [] }) => {
+  const workEntry = useWorkEntry();
+  
+  return (
+    <SchoolProvider
+      initialSchools={initialSchools}
+      workEntries={workEntry.workEntries}
+    >
+      {children}
+    </SchoolProvider>
+  );
+};
+
+// Componente para conectar todos los contextos
+export const AppProviderInner: React.FC<{
+  children: React.ReactNode;
+  initialSchools?: School[];
+  initialPositions?: Position[];
+  initialRoles?: Role[];
+  setCurrentUser: (employee: Employee) => void;
+}> = ({
+  children,
+  initialSchools = [],
+  initialPositions = [],
+  initialRoles = [],
   setCurrentUser
 }) => {
-  const { employees, getEmployeeById } = useEmployee();
-  const { addHistoryLog } = useHistory();
-
   return (
-    <AuthProvider 
-      employees={employees} 
-      updateEmployeeState={setCurrentUser}
-    >
-      <WorkEntryProvider
-        getEmployeeById={getEmployeeById}
-        getSchoolById={(id) => initialSchools.find(s => s.id === id)}
-        currentUser={null}
-      >
-        <WorkEntryWithAuthProvider>
-          <SchoolProvider
-            initialSchools={initialSchools}
-            workEntries={[]}
-            onDeleteWorkEntries={() => {}}
-            employees={employees}
-            getEmployeeById={getEmployeeById}
-          >
-            <SchoolWithWorkEntryProvider>
-              <PositionProvider initialPositions={initialPositions}>
-                <RoleProvider initialRoles={initialRoles}>
-                  <CombinedContextProvider>
-                    {children}
-                  </CombinedContextProvider>
-                </RoleProvider>
-              </PositionProvider>
-            </SchoolWithWorkEntryProvider>
-          </SchoolProvider>
-        </WorkEntryWithAuthProvider>
-      </WorkEntryProvider>
+    <AuthProvider onLogin={setCurrentUser}>
+      <WorkEntryWithAuthProvider>
+        <SchoolWithWorkEntryProvider initialSchools={initialSchools}>
+          <PositionProvider initialPositions={initialPositions}>
+            <RoleProvider initialRoles={initialRoles}>
+              <AppProviderConnector>
+                {children}
+              </AppProviderConnector>
+            </RoleProvider>
+          </PositionProvider>
+        </SchoolWithWorkEntryProvider>
+      </WorkEntryWithAuthProvider>
     </AuthProvider>
+  );
+};
+
+// Este componente se encarga de conectar todos los contextos con el CombinedContextProvider
+const AppProviderConnector: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const auth = useAuth();
+  const employee = useEmployee();
+  const school = useSchool();
+  const workEntry = useWorkEntry();
+  const position = usePosition();
+  const role = useRole();
+  const history = useHistory();
+  
+  return (
+    <CombinedContextProvider
+      auth={auth}
+      employee={employee}
+      school={school}
+      workEntry={workEntry}
+      position={position}
+      role={role}
+      history={history}
+    >
+      {children}
+    </CombinedContextProvider>
   );
 };

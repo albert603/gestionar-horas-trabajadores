@@ -1,5 +1,5 @@
 
-import React, { createContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useAuth } from './AuthContext';
 import { useEmployee } from './EmployeeContext';
 import { useSchool } from './school/SchoolContext';
@@ -9,16 +9,29 @@ import { useRole } from './RoleContext';
 import { useHistory } from '@/hooks/useHistoryLog';
 import { AppContextType } from './AppContextType';
 
-// This component combines all context values to provide a unified API
-export const CombinedContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const auth = useAuth();
-  const employee = useEmployee();
-  const school = useSchool();
-  const workEntry = useWorkEntry();
-  const position = usePosition();
-  const role = useRole();
-  const history = useHistory();
+// Creamos un contexto combinado para proporcionar una API unificada
+export const CombinedContext = createContext<AppContextType | undefined>(undefined);
 
+// Este componente combina todos los valores de contexto
+export const CombinedContextProvider: React.FC<{ 
+  children: React.ReactNode;
+  auth: ReturnType<typeof useAuth>;
+  employee: ReturnType<typeof useEmployee>;
+  school: ReturnType<typeof useSchool>;
+  workEntry: ReturnType<typeof useWorkEntry>;
+  position: ReturnType<typeof usePosition>;
+  role: ReturnType<typeof useRole>;
+  history: ReturnType<typeof useHistory>;
+}> = ({ 
+  children, 
+  auth,
+  employee,
+  school,
+  workEntry,
+  position,
+  role,
+  history
+}) => {
   // Combine all context values into one
   const combinedContext: AppContextType = {
     // Auth context
@@ -76,13 +89,19 @@ export const CombinedContextProvider: React.FC<{ children: React.ReactNode }> = 
     // History context
     getHistoryLogs: history.getHistoryLogs
   };
-
-  // Create a context for the combined value
-  const CombinedContext = createContext<AppContextType | undefined>(undefined);
   
   return (
     <CombinedContext.Provider value={combinedContext}>
       {children}
     </CombinedContext.Provider>
   );
+};
+
+// Hook para usar el contexto combinado
+export const useCombinedContext = () => {
+  const context = useContext(CombinedContext);
+  if (context === undefined) {
+    throw new Error('useCombinedContext debe usarse dentro de un CombinedContextProvider');
+  }
+  return context;
 };
