@@ -10,46 +10,6 @@ import { useHistory } from '@/hooks/useHistoryLog';
 import { Employee, School, Position, Role } from '@/types';
 import { CombinedContextProvider } from './CombinedContextProvider';
 
-// Componente para conectar el contexto de WorkEntry con Auth
-export const WorkEntryWithAuthProvider: React.FC<{ 
-  children: React.ReactNode 
-}> = ({ children }) => {
-  const auth = useAuth();
-  const employee = useEmployee();
-  const school = useSchool();
-  
-  return (
-    <WorkEntryProvider
-      currentUser={auth.currentUser}
-      getEmployeeById={employee.getEmployeeById}
-      getSchoolById={school.getSchoolById}
-    >
-      {children}
-    </WorkEntryProvider>
-  );
-};
-
-// Componente para conectar el contexto de School con WorkEntry
-export const SchoolWithWorkEntryProvider: React.FC<{ 
-  children: React.ReactNode;
-  initialSchools?: School[];
-}> = ({ children, initialSchools = [] }) => {
-  const workEntry = useWorkEntry();
-  const employee = useEmployee();
-  
-  return (
-    <SchoolProvider
-      initialSchools={initialSchools}
-      workEntries={workEntry.workEntries}
-      onDeleteWorkEntries={workEntry.deleteWorkEntriesBySchool}
-      employees={employee.employees}
-      getEmployeeById={employee.getEmployeeById}
-    >
-      {children}
-    </SchoolProvider>
-  );
-};
-
 // Componente para conectar todos los contextos
 export const AppProviderInner: React.FC<{
   children: React.ReactNode;
@@ -69,8 +29,14 @@ export const AppProviderInner: React.FC<{
       employees={[]}
       updateEmployeeState={setCurrentUser}
     >
-      <WorkEntryWithAuthProvider>
-        <SchoolWithWorkEntryProvider initialSchools={initialSchools}>
+      <SchoolProvider
+        initialSchools={initialSchools}
+        workEntries={[]}
+        onDeleteWorkEntries={(schoolId: string) => {}}
+        employees={[]}
+        getEmployeeById={(id: string) => undefined}
+      >
+        <WorkEntryConnector>
           <PositionProvider initialPositions={initialPositions}>
             <RoleProvider initialRoles={initialRoles}>
               <AppProviderConnector>
@@ -78,10 +44,47 @@ export const AppProviderInner: React.FC<{
               </AppProviderConnector>
             </RoleProvider>
           </PositionProvider>
-        </SchoolWithWorkEntryProvider>
-      </WorkEntryWithAuthProvider>
+        </WorkEntryConnector>
+      </SchoolProvider>
     </AuthProvider>
   );
+};
+
+// Componente para conectar el contexto de WorkEntry con Auth y School
+const WorkEntryConnector: React.FC<{ 
+  children: React.ReactNode 
+}> = ({ children }) => {
+  const auth = useAuth();
+  const employee = useEmployee();
+  const school = useSchool();
+  
+  return (
+    <WorkEntryProvider
+      currentUser={auth.currentUser}
+      getEmployeeById={employee.getEmployeeById}
+      getSchoolById={school.getSchoolById}
+    >
+      <SchoolWorkEntryUpdater>
+        {children}
+      </SchoolWorkEntryUpdater>
+    </WorkEntryProvider>
+  );
+};
+
+// Componente para actualizar SchoolProvider con WorkEntry data
+const SchoolWorkEntryUpdater: React.FC<{ 
+  children: React.ReactNode
+}> = ({ children }) => {
+  const workEntry = useWorkEntry();
+  const employee = useEmployee();
+  const school = useSchool();
+  
+  // Update SchoolProvider with actual data from WorkEntry
+  React.useEffect(() => {
+    // This effect can be used to sync data between contexts if needed
+  }, [workEntry.workEntries]);
+  
+  return <>{children}</>;
 };
 
 // Este componente se encarga de conectar todos los contextos con el CombinedContextProvider

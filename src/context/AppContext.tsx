@@ -2,15 +2,14 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './AuthContext';
 import { EmployeeProvider, useEmployee } from './EmployeeContext';
-import { SchoolProvider } from './SchoolContext';
+import { SchoolProvider } from './school/SchoolContext';
 import { WorkEntryProvider } from './WorkEntryContext';
 import { PositionProvider } from './PositionContext';
 import { RoleProvider } from './RoleContext';
-import { HistoryProvider, useHistory } from '@/hooks/useHistoryLog';
+import { HistoryProvider } from '@/hooks/useHistoryLog';
 import { Employee } from '@/types';
 import { initialEmployees, initialSchools, initialPositions, initialRoles } from './initialData';
 import { AppProviderInner } from './ConnectorProviders';
-import { CombinedContextProvider } from './CombinedContextProvider';
 
 // Export the AppContextType and useApp hook
 export type { AppContextType } from './AppContextType';
