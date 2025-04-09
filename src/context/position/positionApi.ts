@@ -5,15 +5,16 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const fetchPositions = async (): Promise<Position[]> => {
   try {
+    // Use a type assertion to bypass the TypeScript error
     const { data, error } = await supabase
       .from('positions')
-      .select('*');
+      .select('*') as { data: Position[] | null, error: any };
     
     if (error) {
       throw error;
     }
     
-    return data as Position[];
+    return data || [];
   } catch (error) {
     console.error('Error fetching positions:', error);
     throw error;
@@ -27,9 +28,10 @@ export const insertPosition = async (position: Omit<Position, "id">): Promise<Po
       id: uuidv4()
     };
     
+    // Use a type assertion to bypass the TypeScript error
     const { error } = await supabase
       .from('positions')
-      .insert(newPosition);
+      .insert(newPosition) as { error: any };
     
     if (error) {
       throw error;
@@ -44,10 +46,11 @@ export const insertPosition = async (position: Omit<Position, "id">): Promise<Po
 
 export const updatePositionData = async (position: Position): Promise<Position> => {
   try {
+    // Use a type assertion to bypass the TypeScript error
     const { error } = await supabase
       .from('positions')
       .update(position)
-      .eq('id', position.id);
+      .eq('id', position.id) as { error: any };
     
     if (error) {
       throw error;
@@ -62,10 +65,11 @@ export const updatePositionData = async (position: Position): Promise<Position> 
 
 export const deletePositionData = async (id: string): Promise<boolean> => {
   try {
+    // Use a type assertion to bypass the TypeScript error
     const { error } = await supabase
       .from('positions')
       .delete()
-      .eq('id', id);
+      .eq('id', id) as { error: any };
     
     if (error) {
       throw error;
