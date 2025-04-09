@@ -27,7 +27,9 @@ export const RoleProvider: React.FC<{
     const loadRoles = async () => {
       try {
         setIsLoading(true);
+        console.log("Fetching roles from database...");
         const dbRoles = await fetchRoles();
+        console.log("Roles fetched:", dbRoles);
         setRoles(dbRoles);
       } catch (error) {
         console.error("Error loading roles:", error);

@@ -5,15 +5,17 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const fetchRoles = async (): Promise<Role[]> => {
   try {
-    // Use a type assertion to bypass the TypeScript error
+    // Usamos una aserción de tipo para evitar errores de TypeScript
     const { data, error } = await supabase
       .from('roles')
       .select('*') as { data: Role[] | null, error: any };
     
     if (error) {
+      console.error("Error fetching roles:", error);
       throw error;
     }
     
+    console.log("Roles loaded from database:", data);
     return data || [];
   } catch (error) {
     console.error('Error fetching roles:', error);
@@ -28,15 +30,17 @@ export const insertRole = async (role: Omit<Role, "id">): Promise<Role> => {
       id: uuidv4()
     };
     
-    // Use a type assertion to bypass the TypeScript error
+    // Usamos una aserción de tipo para evitar errores de TypeScript
     const { error } = await supabase
       .from('roles')
       .insert(newRole) as { error: any };
     
     if (error) {
+      console.error("Error adding role:", error);
       throw error;
     }
     
+    console.log("Role added to database:", newRole);
     return newRole;
   } catch (error) {
     console.error("Error adding role:", error);
@@ -46,16 +50,18 @@ export const insertRole = async (role: Omit<Role, "id">): Promise<Role> => {
 
 export const updateRoleData = async (role: Role): Promise<Role> => {
   try {
-    // Use a type assertion to bypass the TypeScript error
+    // Usamos una aserción de tipo para evitar errores de TypeScript
     const { error } = await supabase
       .from('roles')
       .update(role)
       .eq('id', role.id) as { error: any };
     
     if (error) {
+      console.error("Error updating role:", error);
       throw error;
     }
     
+    console.log("Role updated in database:", role);
     return role;
   } catch (error) {
     console.error("Error updating role:", error);
@@ -65,16 +71,18 @@ export const updateRoleData = async (role: Role): Promise<Role> => {
 
 export const deleteRoleData = async (id: string): Promise<boolean> => {
   try {
-    // Use a type assertion to bypass the TypeScript error
+    // Usamos una aserción de tipo para evitar errores de TypeScript
     const { error } = await supabase
       .from('roles')
       .delete()
       .eq('id', id) as { error: any };
     
     if (error) {
+      console.error("Error deleting role:", error);
       throw error;
     }
     
+    console.log("Role deleted from database, id:", id);
     return true;
   } catch (error) {
     console.error("Error deleting role:", error);
