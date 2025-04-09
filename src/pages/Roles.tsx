@@ -30,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Edit, Trash, AlertTriangle } from "lucide-react";
+import { Shield, Edit, Trash, AlertTriangle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -56,6 +56,7 @@ const RolesPage = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteAlert, setOpenDeleteAlert] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState<Role | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState<{
     name: "Administrador" | "Editor" | "Usuario";
@@ -98,17 +99,24 @@ const RolesPage = () => {
     setOpenDialog(true);
   };
 
-  const handleSubmit = () => {
-    if (currentRole) {
-      updateRole({
-        ...currentRole,
-        name: formData.name,
-        permissions: formData.permissions,
-      });
-    } else {
-      addRole(formData);
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      if (currentRole) {
+        await updateRole({
+          ...currentRole,
+          name: formData.name,
+          permissions: formData.permissions,
+        });
+      } else {
+        await addRole(formData);
+      }
+      setOpenDialog(false);
+    } catch (error) {
+      console.error("Error in role operation:", error);
+    } finally {
+      setIsLoading(false);
     }
-    setOpenDialog(false);
   };
 
   const canDeleteRole = (roleId: string) => {
@@ -147,22 +155,29 @@ const RolesPage = () => {
     setOpenDeleteAlert(role.id);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (openDeleteAlert) {
-      const roleToDelete = roles.find(r => r.id === openDeleteAlert);
-      
-      if (roleToDelete?.name === "Administrador" && !canDeleteRole(openDeleteAlert)) {
-        toast({
-          title: "No se puede eliminar",
-          description: "No se puede eliminar el único rol de Administrador. Debe existir al menos un administrador en el sistema.",
-          variant: "destructive",
-        });
+      setIsLoading(true);
+      try {
+        const roleToDelete = roles.find(r => r.id === openDeleteAlert);
+        
+        if (roleToDelete?.name === "Administrador" && !canDeleteRole(openDeleteAlert)) {
+          toast({
+            title: "No se puede eliminar",
+            description: "No se puede eliminar el único rol de Administrador. Debe existir al menos un administrador en el sistema.",
+            variant: "destructive",
+          });
+          setOpenDeleteAlert(null);
+          return;
+        }
+        
+        await deleteRole(openDeleteAlert);
         setOpenDeleteAlert(null);
-        return;
+      } catch (error) {
+        console.error("Error deleting role:", error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      deleteRole(openDeleteAlert);
-      setOpenDeleteAlert(null);
     }
   };
 
@@ -180,7 +195,7 @@ const RolesPage = () => {
           <Shield className="h-5 w-5 mr-2 text-gray-500" />
           <h2 className="text-lg font-medium">Roles del Sistema</h2>
         </div>
-        <Button onClick={handleAddNewRole}>Nuevo Rol</Button>
+        <Button onClick={handleAddNewRole} disabled={isLoading}>Nuevo Rol</Button>
       </div>
 
       <Card>
@@ -191,80 +206,88 @@ const RolesPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre del Rol</TableHead>
-                <TableHead>Crear</TableHead>
-                <TableHead>Leer</TableHead>
-                <TableHead>Actualizar</TableHead>
-                <TableHead>Eliminar</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {roles.map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        role.name === "Administrador"
-                          ? "destructive"
-                          : role.name === "Editor"
-                          ? "outline"
-                          : "default"
-                      }
-                    >
-                      {role.name}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {role.permissions.create ? "✓" : "✗"}
-                  </TableCell>
-                  <TableCell>
-                    {role.permissions.read ? "✓" : "✗"}
-                  </TableCell>
-                  <TableCell>
-                    {role.permissions.update ? "✓" : "✗"}
-                  </TableCell>
-                  <TableCell>
-                    {role.permissions.delete ? "✓" : "✗"}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditRole(role)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`${
-                        role.name === "Administrador" && !canDeleteRole(role.id)
-                          ? "text-gray-400"
-                          : "text-red-500 hover:text-red-600"
-                      }`}
-                      onClick={() => handleDeleteClick(role)}
-                      disabled={role.name === "Administrador" && !canDeleteRole(role.id)}
-                    >
-                      <Trash className="h-4 w-4 mr-1" />
-                      Eliminar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {roles.length === 0 && (
+          {roles.length === 0 && isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-lg">Cargando roles...</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
-                    No hay roles definidos. Crea el primero.
-                  </TableCell>
+                  <TableHead>Nombre del Rol</TableHead>
+                  <TableHead>Crear</TableHead>
+                  <TableHead>Leer</TableHead>
+                  <TableHead>Actualizar</TableHead>
+                  <TableHead>Eliminar</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {roles.map((role) => (
+                  <TableRow key={role.id}>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          role.name === "Administrador"
+                            ? "destructive"
+                            : role.name === "Editor"
+                            ? "outline"
+                            : "default"
+                        }
+                      >
+                        {role.name}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {role.permissions.create ? "✓" : "✗"}
+                    </TableCell>
+                    <TableCell>
+                      {role.permissions.read ? "✓" : "✗"}
+                    </TableCell>
+                    <TableCell>
+                      {role.permissions.update ? "✓" : "✗"}
+                    </TableCell>
+                    <TableCell>
+                      {role.permissions.delete ? "✓" : "✗"}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditRole(role)}
+                        disabled={isLoading}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`${
+                          role.name === "Administrador" && !canDeleteRole(role.id)
+                            ? "text-gray-400"
+                            : "text-red-500 hover:text-red-600"
+                        }`}
+                        onClick={() => handleDeleteClick(role)}
+                        disabled={isLoading || (role.name === "Administrador" && !canDeleteRole(role.id))}
+                      >
+                        <Trash className="h-4 w-4 mr-1" />
+                        Eliminar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {roles.length === 0 && !isLoading && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-6">
+                      No hay roles definidos. Crea el primero.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -288,6 +311,7 @@ const RolesPage = () => {
                   ...formData,
                   name: value as "Administrador" | "Editor" | "Usuario"
                 })}
+                disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar rol" />
@@ -316,6 +340,7 @@ const RolesPage = () => {
                         },
                       })
                     }
+                    disabled={isLoading}
                   />
                   <Label htmlFor="create">Crear registros</Label>
                 </div>
@@ -333,6 +358,7 @@ const RolesPage = () => {
                         },
                       })
                     }
+                    disabled={isLoading}
                   />
                   <Label htmlFor="read">Leer registros</Label>
                 </div>
@@ -350,6 +376,7 @@ const RolesPage = () => {
                         },
                       })
                     }
+                    disabled={isLoading}
                   />
                   <Label htmlFor="update">Actualizar registros</Label>
                 </div>
@@ -367,6 +394,7 @@ const RolesPage = () => {
                         },
                       })
                     }
+                    disabled={isLoading}
                   />
                   <Label htmlFor="delete">Eliminar registros</Label>
                 </div>
@@ -374,11 +402,18 @@ const RolesPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDialog(false)}>
+            <Button variant="outline" onClick={() => setOpenDialog(false)} disabled={isLoading}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit}>
-              {currentRole ? "Actualizar" : "Crear"}
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {currentRole ? "Actualizando..." : "Creando..."}
+                </>
+              ) : (
+                currentRole ? "Actualizar" : "Crear"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -394,9 +429,16 @@ const RolesPage = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              Eliminar
+            <AlertDialogCancel disabled={isLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

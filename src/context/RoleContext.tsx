@@ -1,8 +1,9 @@
 
-import React, { createContext, useContext, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Role } from '@/types';
 import { useAddHistoryLog } from '@/hooks/useHistoryLog';
+import { fetchRoles, insertRole, updateRoleData, deleteRoleData } from './role/roleApi';
+import { toast } from '@/hooks/use-toast';
 
 interface RoleContextType {
   roles: Role[];
@@ -18,40 +19,106 @@ export const RoleProvider: React.FC<{
   initialRoles: Role[];
 }> = ({ children, initialRoles }) => {
   const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const addHistoryLog = useAddHistoryLog();
 
-  const addRole = (role: Omit<Role, "id">) => {
-    const newRole: Role = {
-      ...role,
-      id: uuidv4()
-    };
-    setRoles(prev => [...prev, newRole]);
-    addHistoryLog("Añadir", `Se añadió el rol ${newRole.name}`);
-  };
-
-  const updateRole = (role: Role) => {
-    setRoles(prev => 
-      prev.map(r => r.id === role.id ? role : r)
-    );
-    addHistoryLog("Actualizar", `Se actualizó el rol ${role.name}`);
-  };
-
-  const deleteRole = (id: string) => {
-    const role = roles.find(r => r.id === id);
-    if (role?.name === "Administrador") {
-      const adminRoles = roles.filter(r => r.name === "Administrador");
-      if (adminRoles.length <= 1) {
-        addHistoryLog(
-          "Error", 
-          "Intento de eliminar el único rol de Administrador", 
-          "Sistema"
-        );
-        return;
+  // Cargar roles desde Supabase al iniciar
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        setIsLoading(true);
+        const dbRoles = await fetchRoles();
+        setRoles(dbRoles);
+      } catch (error) {
+        console.error("Error loading roles:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los roles",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
       }
+    };
+
+    loadRoles();
+  }, []);
+
+  const addRole = async (role: Omit<Role, "id">) => {
+    try {
+      const newRole = await insertRole(role);
+      setRoles(prev => [...prev, newRole]);
+      addHistoryLog("Añadir", `Se añadió el rol ${newRole.name}`);
+      toast({
+        title: "Éxito",
+        description: `Rol "${role.name}" añadido correctamente`,
+      });
+    } catch (error) {
+      console.error("Error adding role:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo añadir el rol",
+        variant: "destructive"
+      });
     }
-    
-    setRoles(prev => prev.filter(r => r.id !== id));
-    addHistoryLog("Eliminar", `Se eliminó el rol ${role?.name || id}`);
+  };
+
+  const updateRole = async (role: Role) => {
+    try {
+      await updateRoleData(role);
+      setRoles(prev => 
+        prev.map(r => r.id === role.id ? role : r)
+      );
+      addHistoryLog("Actualizar", `Se actualizó el rol ${role.name}`);
+      toast({
+        title: "Éxito",
+        description: `Rol "${role.name}" actualizado correctamente`,
+      });
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast({
+        title: "Error", 
+        description: "No se pudo actualizar el rol", 
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteRole = async (id: string) => {
+    try {
+      const role = roles.find(r => r.id === id);
+      if (role?.name === "Administrador") {
+        const adminRoles = roles.filter(r => r.name === "Administrador");
+        if (adminRoles.length <= 1) {
+          addHistoryLog(
+            "Error", 
+            "Intento de eliminar el único rol de Administrador", 
+            "Sistema"
+          );
+          toast({
+            title: "Error",
+            description: "No se puede eliminar el único rol de Administrador",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
+      await deleteRoleData(id);
+      setRoles(prev => prev.filter(r => r.id !== id));
+      addHistoryLog("Eliminar", `Se eliminó el rol ${role?.name || id}`);
+      toast({
+        title: "Éxito",
+        description: `Rol eliminado correctamente`,
+      });
+    } catch (error) {
+      console.error("Error deleting role:", error);
+      toast({
+        title: "Error", 
+        description: "No se pudo eliminar el rol", 
+        variant: "destructive"
+      });
+    }
   };
 
   const roleContextValue: RoleContextType = {
