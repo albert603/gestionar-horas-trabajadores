@@ -15,10 +15,14 @@ export const WorkEntryWithAuthProvider: React.FC<{
   children: React.ReactNode 
 }> = ({ children }) => {
   const auth = useAuth();
+  const employee = useEmployee();
+  const school = useSchool();
   
   return (
     <WorkEntryProvider
       currentUser={auth.currentUser}
+      getEmployeeById={employee.getEmployeeById}
+      getSchoolById={school.getSchoolById}
     >
       {children}
     </WorkEntryProvider>
@@ -31,11 +35,15 @@ export const SchoolWithWorkEntryProvider: React.FC<{
   initialSchools?: School[];
 }> = ({ children, initialSchools = [] }) => {
   const workEntry = useWorkEntry();
+  const employee = useEmployee();
   
   return (
     <SchoolProvider
       initialSchools={initialSchools}
       workEntries={workEntry.workEntries}
+      onDeleteWorkEntries={workEntry.deleteWorkEntriesBySchool}
+      employees={employee.employees}
+      getEmployeeById={employee.getEmployeeById}
     >
       {children}
     </SchoolProvider>
@@ -57,7 +65,10 @@ export const AppProviderInner: React.FC<{
   setCurrentUser
 }) => {
   return (
-    <AuthProvider onLogin={setCurrentUser}>
+    <AuthProvider 
+      employees={[]}
+      updateEmployeeState={setCurrentUser}
+    >
       <WorkEntryWithAuthProvider>
         <SchoolWithWorkEntryProvider initialSchools={initialSchools}>
           <PositionProvider initialPositions={initialPositions}>
