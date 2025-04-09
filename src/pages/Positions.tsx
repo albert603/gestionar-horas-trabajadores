@@ -30,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Position } from "@/types";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -42,6 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -55,6 +56,7 @@ const Positions = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentPosition, setCurrentPosition] = useState<Position | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addForm = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,26 +72,41 @@ const Positions = () => {
     },
   });
 
-  const handleAddSubmit = (data: z.infer<typeof formSchema>) => {
-    addPosition({ name: data.name });
-    setIsAddDialogOpen(false);
-    addForm.reset();
+  const handleAddSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      await addPosition({ name: data.name });
+      setIsAddDialogOpen(false);
+      addForm.reset();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditSubmit = (data: z.infer<typeof formSchema>) => {
-    if (currentPosition) {
-      updatePosition({ ...currentPosition, name: data.name });
+  const handleEditSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      if (currentPosition) {
+        await updatePosition({ ...currentPosition, name: data.name });
+      }
+      setIsEditDialogOpen(false);
+      setCurrentPosition(null);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsEditDialogOpen(false);
-    setCurrentPosition(null);
   };
 
-  const handleDelete = () => {
-    if (currentPosition) {
-      deletePosition(currentPosition.id);
+  const handleDelete = async () => {
+    setIsSubmitting(true);
+    try {
+      if (currentPosition) {
+        await deletePosition(currentPosition.id);
+      }
+      setIsDeleteDialogOpen(false);
+      setCurrentPosition(null);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsDeleteDialogOpen(false);
-    setCurrentPosition(null);
   };
 
   const openEditDialog = (position: Position) => {
@@ -102,6 +119,9 @@ const Positions = () => {
     setCurrentPosition(position);
     setIsDeleteDialogOpen(true);
   };
+
+  // Determinar si estamos cargando datos iniciales
+  const isLoading = positions === undefined;
 
   return (
     <MainLayout>
@@ -126,7 +146,20 @@ const Positions = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {positions.length > 0 ? (
+              {isLoading ? (
+                // Skeleton loaders mientras se cargan los datos
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell><Skeleton className="h-6 w-40" /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : positions.length > 0 ? (
                 positions.map((position) => (
                   <TableRow key={position.id}>
                     <TableCell className="font-medium">{position.name}</TableCell>
@@ -195,10 +228,20 @@ const Positions = () => {
                     addForm.reset();
                   }} 
                   type="button"
+                  disabled={isSubmitting}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit">Crear</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    "Crear"
+                  )}
+                </Button>
               </div>
             </form>
           </Form>
@@ -231,10 +274,24 @@ const Positions = () => {
               />
 
               <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} type="button">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditDialogOpen(false)} 
+                  type="button"
+                  disabled={isSubmitting}
+                >
                   Cancelar
                 </Button>
-                <Button type="submit">Actualizar</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    "Actualizar"
+                  )}
+                </Button>
               </div>
             </form>
           </Form>
@@ -252,9 +309,20 @@ const Positions = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Eliminar
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
