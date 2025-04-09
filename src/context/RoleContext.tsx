@@ -16,8 +16,8 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export const RoleProvider: React.FC<{ 
   children: React.ReactNode;
-  initialRoles: Role[];
-}> = ({ children, initialRoles }) => {
+  initialRoles?: Role[];
+}> = ({ children, initialRoles = [] }) => {
   const [roles, setRoles] = useState<Role[]>(initialRoles);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const addHistoryLog = useAddHistoryLog();
