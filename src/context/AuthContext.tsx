@@ -112,6 +112,7 @@ export const AuthProvider: React.FC<{
       
       // Verificación con la base de datos
       console.log("Verificando credenciales con base de datos...");
+      // Important change: remove the space after username in the query
       const { data, error } = await supabase
         .from('employees')
         .select('*')
