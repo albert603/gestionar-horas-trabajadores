@@ -1,11 +1,6 @@
 
 import React, { useState } from 'react';
-import { AuthProvider } from './AuthContext';
-import { EmployeeProvider, useEmployee } from './EmployeeContext';
-import { SchoolProvider } from './school/SchoolContext';
-import { WorkEntryProvider } from './WorkEntryContext';
-import { PositionProvider } from './PositionContext';
-import { RoleProvider } from './RoleContext';
+import { EmployeeProvider } from './EmployeeContext';
 import { HistoryProvider } from '@/hooks/useHistoryLog';
 import { Employee } from '@/types';
 import { initialEmployees, initialSchools, initialPositions, initialRoles } from './initialData';
@@ -19,15 +14,13 @@ export { useApp } from './useApp';
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUserState, setCurrentUserState] = useState<Employee | null>(null);
 
-  const updateCurrentUser = (employee: Employee) => {
-    setCurrentUserState(employee);
-  };
+  console.log("AppProvider - Inicializando el provider principal");
 
   return (
     <HistoryProvider currentUserName={currentUserState?.name}>
       <EmployeeProvider 
         initialEmployees={initialEmployees}
-        onUpdateEmployee={updateCurrentUser}
+        onUpdateEmployee={setCurrentUserState}
         currentUser={currentUserState}
       >
         <AppProviderInner 

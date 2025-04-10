@@ -20,7 +20,7 @@ const Login = () => {
 
   // Verificamos si el usuario ya está autenticado
   useEffect(() => {
-    console.log("Estado de autenticación en Login:", isAuthenticated);
+    console.log("Componente Login - Estado de autenticación:", isAuthenticated);
     if (isAuthenticated) {
       console.log("Usuario ya autenticado, redirigiendo a página principal");
       navigate("/");
@@ -42,7 +42,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log("Intentando login con usuario:", username, "y contraseña:", password);
+      console.log("Intentando login con usuario:", username);
       const success = await login(username, password);
       
       if (success) {
@@ -51,7 +51,9 @@ const Login = () => {
           title: "Inicio de sesión exitoso",
           description: "Bienvenido al sistema",
         });
-        navigate("/");
+        setTimeout(() => {
+          navigate("/");
+        }, 100);
       } else {
         console.log("Login fallido");
         toast({

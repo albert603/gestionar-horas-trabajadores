@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{
   useEffect(() => {
     const checkSession = async () => {
       try {
-        console.log("Verificando sesión existente...");
+        console.log("AuthProvider - Verificando sesión existente...");
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
           try {
@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{
             
             // Find the user in the database
             try {
+              console.log("Buscando usuario en base de datos con ID:", user.id);
               const { data, error } = await supabase
                 .from('employees')
                 .select('*')
@@ -86,13 +87,31 @@ export const AuthProvider: React.FC<{
     };
     
     checkSession();
-  }, [employees, updateEmployeeState]);
+  }, [updateEmployeeState]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       console.log("Intento de login para usuario:", username);
       
-      // Verificación directa con la base de datos
+      // Si no hay conexión a la base de datos, intenta usar los datos iniciales
+      if (employees && employees.length > 0) {
+        console.log("Verificando credenciales con datos locales...");
+        const foundUser = employees.find(
+          (emp) => emp.username === username && emp.password === password && emp.active
+        );
+        
+        if (foundUser) {
+          console.log("Login exitoso con datos locales para:", foundUser.name);
+          setCurrentUser(foundUser);
+          setIsAuthenticated(true);
+          updateEmployeeState(foundUser);
+          localStorage.setItem('currentUser', JSON.stringify(foundUser));
+          return true;
+        }
+      }
+      
+      // Verificación con la base de datos
+      console.log("Verificando credenciales con base de datos...");
       const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -171,6 +190,12 @@ export const AuthProvider: React.FC<{
     login,
     logout
   };
+
+  // Mostrar información de contexto para depuración
+  console.log("AuthProvider - Estado actual:", { 
+    isAuthenticated, 
+    currentUser: currentUser?.name 
+  });
 
   return (
     <AuthContext.Provider value={authContextValue}>
