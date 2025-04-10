@@ -5,6 +5,8 @@ import { Skeleton } from './ui/skeleton';
 import { useApp } from '@/context/AppContext';
 import DashboardStats from './dashboard/DashboardStats';
 import UserInfoCard from './dashboard/UserInfoCard';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 const DashboardSummary = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +18,7 @@ const DashboardSummary = () => {
     workEntries
   } = useApp();
   
+  const isMobile = useIsMobile();
   const isAdmin = currentUser?.role === 'Administrador';
   const currentUserName = currentUser?.name || '';
   const currentUserPosition = currentUser?.position || '';
@@ -47,21 +50,23 @@ const DashboardSummary = () => {
             .reduce((total, entry) => total + entry.hours, 0)
         : 0);
 
-  const welcomeMessage = "Bienvenido a tu panel de control. Aquí podrás ver tus colegios asignados y registrar tus horas trabajadas.";
+  const welcomeMessage = isMobile 
+    ? "Registra tus horas trabajadas." 
+    : "Bienvenido a tu panel de control. Aquí podrás ver tus colegios asignados y registrar tus horas trabajadas.";
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>
+      <CardHeader className={isMobile ? "p-4" : "p-6"}>
+        <CardTitle className={isMobile ? "text-lg" : "text-xl"}>
           {isAdmin ? 'Resumen del Sistema' : 'Mi Panel'}
         </CardTitle>
-        <CardDescription>
+        <CardDescription className={isMobile ? "text-sm" : ""}>
           {isAdmin 
             ? 'Vista general de empleados, colegios y horas registradas' 
             : `Bienvenido, ${currentUserName}`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={cn("space-y-4", isMobile && "p-4")}>
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <Skeleton className="h-8 w-8 rounded-full" />
