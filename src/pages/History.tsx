@@ -27,7 +27,7 @@ const History = () => {
       console.log("History logs loaded:", logs);
       
       // Ensure logs is always an array, even if null/undefined is returned
-      setHistoryLogs(logs || []);
+      setHistoryLogs(Array.isArray(logs) ? logs : []);
     } catch (error) {
       console.error("Error al cargar el historial:", error);
       toast({
@@ -54,7 +54,9 @@ const History = () => {
     });
   };
 
-  const filteredLogs = filterHistoryLogs(historyLogs, filterEntity, filterAction, searchTerm);
+  // Make sure we have a valid array for filtering
+  const safeHistoryLogs = Array.isArray(historyLogs) ? historyLogs : [];
+  const filteredLogs = filterHistoryLogs(safeHistoryLogs, filterEntity, filterAction, searchTerm);
 
   return (
     <MainLayout>

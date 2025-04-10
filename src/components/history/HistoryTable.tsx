@@ -23,7 +23,8 @@ import {
   School, 
   Users, 
   Briefcase, 
-  Shield
+  Shield,
+  SearchX
 } from "lucide-react";
 
 interface HistoryTableProps {
@@ -117,7 +118,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                 </div>
               </TableCell>
             </TableRow>
-          ) : filteredLogs.length > 0 ? (
+          ) : Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
             filteredLogs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell className="font-mono text-xs">
@@ -155,10 +156,11 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-40 text-center">
                 <div className="flex flex-col items-center justify-center py-8">
-                  <Clock className="h-10 w-10 text-gray-300 mb-2" />
-                  <p className="text-gray-500">No se encontraron registros que coincidan con los filtros.</p>
+                  <SearchX className="h-12 w-12 text-gray-300 mb-3" />
+                  <p className="text-gray-500 font-medium mb-1">No se encontraron registros en el historial</p>
+                  <p className="text-gray-400 text-sm">Cuando realice acciones en el sistema, se registrarán aquí.</p>
                 </div>
               </TableCell>
             </TableRow>
