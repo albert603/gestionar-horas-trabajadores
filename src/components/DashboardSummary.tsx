@@ -22,6 +22,7 @@ const DashboardSummary = () => {
 
   // Calculate counts from context data
   const employeesCount = employees.length;
+  const activeEmployeesCount = employees.filter(emp => emp.active).length;
   const schoolsCount = schools.length;
   
   // Calculate total hours
@@ -69,6 +70,7 @@ const DashboardSummary = () => {
           <DashboardStats
             isAdmin={isAdmin}
             employeesCount={employeesCount}
+            activeEmployeesCount={activeEmployeesCount}
             schoolsCount={schoolsCount}
             userSchoolsCount={userSchoolsCount}
             hoursCount={hoursCount}

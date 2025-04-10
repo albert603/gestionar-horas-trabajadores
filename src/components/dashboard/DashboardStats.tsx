@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { Building2, User, Clock } from 'lucide-react';
+import { Building2, User, Clock, Users, GraduationCap } from 'lucide-react';
 import StatCard from './StatCard';
 
 interface DashboardStatsProps {
   isAdmin: boolean;
   employeesCount: number;
+  activeEmployeesCount: number;
   schoolsCount: number;
   userSchoolsCount: number;
   hoursCount: number;
@@ -15,6 +16,7 @@ interface DashboardStatsProps {
 const DashboardStats = ({
   isAdmin,
   employeesCount,
+  activeEmployeesCount,
   schoolsCount,
   userSchoolsCount,
   hoursCount,
@@ -23,13 +25,22 @@ const DashboardStats = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {isAdmin && (
-        <StatCard
-          title="Empleados"
-          value={employeesCount}
-          Icon={User}
-          bgColorClass="bg-blue-50"
-          iconColorClass="bg-blue-100"
-        />
+        <>
+          <StatCard
+            title="Total Empleados"
+            value={employeesCount}
+            Icon={Users}
+            bgColorClass="bg-blue-50"
+            iconColorClass="bg-blue-100"
+          />
+          <StatCard
+            title="Profesores Activos"
+            value={activeEmployeesCount}
+            Icon={GraduationCap}
+            bgColorClass="bg-indigo-50"
+            iconColorClass="bg-indigo-100"
+          />
+        </>
       )}
       
       <StatCard

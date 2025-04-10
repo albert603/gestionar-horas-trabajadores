@@ -3,11 +3,13 @@ import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import DashboardSummary from "@/components/DashboardSummary";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/AuthContext";
+import { useApp } from "@/context/AppContext";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useApp();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (currentUser) {
@@ -15,8 +17,11 @@ const Index = () => {
         title: "Hola " + currentUser.name,
         description: "Bienvenido al sistema de gestión de horas",
       });
+    } else if (!isAuthenticated) {
+      // Si no está autenticado, redirigir a login
+      navigate("/login");
     }
-  }, [currentUser, toast]);
+  }, [currentUser, toast, isAuthenticated, navigate]);
 
   return (
     <MainLayout>
