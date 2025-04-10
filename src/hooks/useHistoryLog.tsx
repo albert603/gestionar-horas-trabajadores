@@ -33,9 +33,20 @@ export const HistoryProvider: React.FC<{
           throw error;
         }
         
-        // Siempre establecer un array, incluso si data es null o undefined
-        setHistoryLogs(data || []);
-        console.log("History logs initialized with", (data || []).length, "records");
+        // Map de snake_case a camelCase y asegurar que siempre es un array
+        const formattedLogs: HistoryLog[] = (data || []).map(log => ({
+          id: log.id,
+          action: log.action || '',
+          description: log.description || '',
+          timestamp: log.timestamp,
+          performedBy: log.performed_by || 'System',
+          entityType: log.entity_type || '',
+          entityName: log.entity_name,
+          details: log.details
+        }));
+        
+        setHistoryLogs(formattedLogs);
+        console.log("History logs initialized with", formattedLogs.length, "records");
       } catch (error) {
         console.error("Error fetching history logs:", error);
         // Asegurar que establecemos un array vacío en caso de error
@@ -107,7 +118,7 @@ export const HistoryProvider: React.FC<{
         throw error;
       }
       
-      // Siempre devolver un array, incluso si data es null
+      // Map de snake_case a camelCase y asegurar que siempre es un array
       const formattedLogs: HistoryLog[] = (data || []).map(log => ({
         id: log.id,
         action: log.action || '',
