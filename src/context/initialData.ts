@@ -11,8 +11,19 @@ export const initialEmployees: Employee[] = [
     email: "admin@example.com",
     active: true,
     username: "admin",
-    password: "admin",
+    password: "admin123456",
     role: "Administrador"
+  },
+  {
+    id: "2",
+    name: "Usuario",
+    position: "Usuario",
+    phone: "123-456-7890",
+    email: "user@example.com",
+    active: true,
+    username: "user",
+    password: "user",
+    role: "Usuario"
   }
 ];
 
@@ -22,6 +33,10 @@ export const initialPositions: Position[] = [
   {
     id: "1",
     name: "Administrador"
+  },
+  {
+    id: "2",
+    name: "Usuario"
   }
 ];
 

@@ -42,15 +42,23 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log("Intentando login con usuario:", username);
+      console.log("Intentando login con usuario:", username, "y contraseña:", password);
       const success = await login(username, password);
       
       if (success) {
         console.log("Login exitoso, redirigiendo a página principal");
-        // Redirigir después de un inicio de sesión exitoso
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: "Bienvenido al sistema",
+        });
         navigate("/");
       } else {
         console.log("Login fallido");
+        toast({
+          title: "Error de inicio de sesión",
+          description: "Usuario o contraseña incorrectos.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error durante el proceso de login:", error);
