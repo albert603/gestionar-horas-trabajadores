@@ -5,6 +5,7 @@ import { Skeleton } from './ui/skeleton';
 import { useApp } from '@/context/AppContext';
 import DashboardStats from './dashboard/DashboardStats';
 import UserInfoCard from './dashboard/UserInfoCard';
+import TeachersList from './dashboard/TeachersList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +16,10 @@ const DashboardSummary = () => {
     isAuthenticated,
     employees,
     schools,
-    workEntries
+    workEntries,
+    getSchoolById,
+    getWorkEntriesByEmployeeAndDate,
+    getTotalHoursByEmployeeThisMonth
   } = useApp();
   
   const isMobile = useIsMobile();
@@ -55,42 +59,64 @@ const DashboardSummary = () => {
     : "Bienvenido a tu panel de control. Aquí podrás ver tus colegios asignados y registrar tus horas trabajadas.";
 
   return (
-    <Card className="w-full">
-      <CardHeader className={isMobile ? "p-4" : "p-6"}>
-        <CardTitle className={isMobile ? "text-lg" : "text-xl"}>
-          {isAdmin ? 'Resumen del Sistema' : 'Mi Panel'}
-        </CardTitle>
-        <CardDescription className={isMobile ? "text-sm" : ""}>
-          {isAdmin 
-            ? 'Vista general de empleados, colegios y horas registradas' 
-            : `Bienvenido, ${currentUserName}`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className={cn("space-y-4", isMobile && "p-4")}>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <Skeleton className="h-8 w-8 rounded-full" />
-          </div>
-        ) : (
-          <DashboardStats
-            isAdmin={isAdmin}
-            employeesCount={employeesCount}
-            activeEmployeesCount={activeEmployeesCount}
-            schoolsCount={schoolsCount}
-            userSchoolsCount={userSchoolsCount}
-            hoursCount={hoursCount}
-            userHoursCount={userHoursCount}
-          />
-        )}
-        
-        {!isAdmin && !isLoading && (
-          <UserInfoCard 
-            position={currentUserPosition}
-            message={welcomeMessage}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card className="w-full">
+        <CardHeader className={isMobile ? "p-4" : "p-6"}>
+          <CardTitle className={isMobile ? "text-lg" : "text-xl"}>
+            {isAdmin ? 'Resumen del Sistema' : 'Mi Panel'}
+          </CardTitle>
+          <CardDescription className={isMobile ? "text-sm" : ""}>
+            {isAdmin 
+              ? 'Vista general de empleados, colegios y horas registradas' 
+              : `Bienvenido, ${currentUserName}`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className={cn("space-y-4", isMobile && "p-4")}>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </div>
+          ) : (
+            <DashboardStats
+              isAdmin={isAdmin}
+              employeesCount={employeesCount}
+              activeEmployeesCount={activeEmployeesCount}
+              schoolsCount={schoolsCount}
+              userSchoolsCount={userSchoolsCount}
+              hoursCount={hoursCount}
+              userHoursCount={userHoursCount}
+            />
+          )}
+          
+          {!isAdmin && !isLoading && (
+            <UserInfoCard 
+              position={currentUserPosition}
+              message={welcomeMessage}
+            />
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Teachers list - only visible for admin users */}
+      {isAdmin && (
+        <TeachersList 
+          employees={employees}
+          getSchoolById={getSchoolById}
+          getWorkEntriesByEmployeeAndDate={getWorkEntriesByEmployeeAndDate}
+          getTotalHoursByEmployeeThisMonth={getTotalHoursByEmployeeThisMonth}
+        />
+      )}
+      
+      {/* For regular users, show only their own activity */}
+      {!isAdmin && currentUser && (
+        <TeachersList 
+          employees={[currentUser]} 
+          getSchoolById={getSchoolById}
+          getWorkEntriesByEmployeeAndDate={getWorkEntriesByEmployeeAndDate}
+          getTotalHoursByEmployeeThisMonth={getTotalHoursByEmployeeThisMonth}
+        />
+      )}
+    </div>
   );
 };
 
