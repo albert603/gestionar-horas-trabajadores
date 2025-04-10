@@ -33,28 +33,12 @@ export const HistoryProvider: React.FC<{
           throw error;
         }
         
-        if (data) {
-          const formattedLogs: HistoryLog[] = data.map(log => ({
-            id: log.id,
-            action: log.action || '',
-            description: log.description || '',
-            timestamp: log.timestamp,
-            performedBy: log.performed_by || 'System',
-            entityType: log.entity_type || '',
-            entityName: log.entity_name,
-            details: log.details
-          }));
-          
-          setHistoryLogs(formattedLogs);
-          console.log("History logs initialized with", formattedLogs.length, "records");
-        } else {
-          // If no data, set empty array
-          setHistoryLogs([]);
-          console.log("No history logs found in initial fetch");
-        }
+        // Siempre establecer un array, incluso si data es null o undefined
+        setHistoryLogs(data || []);
+        console.log("History logs initialized with", (data || []).length, "records");
       } catch (error) {
         console.error("Error fetching history logs:", error);
-        // Ensure we set an empty array on error
+        // Asegurar que establecemos un array vacío en caso de error
         setHistoryLogs([]);
         toast({
           title: "Error",
@@ -123,22 +107,21 @@ export const HistoryProvider: React.FC<{
         throw error;
       }
       
-      if (data) {
-        const formattedLogs: HistoryLog[] = data.map(log => ({
-          id: log.id,
-          action: log.action || '',
-          description: log.description || '',
-          timestamp: log.timestamp,
-          performedBy: log.performed_by || 'System',
-          entityType: log.entity_type || '',
-          entityName: log.entity_name,
-          details: log.details
-        }));
-        
-        console.log("Retrieved", formattedLogs.length, "history logs");
-        setHistoryLogs(formattedLogs);
-        return formattedLogs;
-      }
+      // Siempre devolver un array, incluso si data es null
+      const formattedLogs: HistoryLog[] = (data || []).map(log => ({
+        id: log.id,
+        action: log.action || '',
+        description: log.description || '',
+        timestamp: log.timestamp,
+        performedBy: log.performed_by || 'System',
+        entityType: log.entity_type || '',
+        entityName: log.entity_name,
+        details: log.details
+      }));
+      
+      console.log("Retrieved", formattedLogs.length, "history logs");
+      setHistoryLogs(formattedLogs);
+      return formattedLogs;
     } catch (error) {
       console.error("Error fetching history logs:", error);
       toast({
@@ -146,10 +129,9 @@ export const HistoryProvider: React.FC<{
         description: "No se pudieron cargar los registros del historial",
         variant: "destructive"
       });
+      // Devolver el estado local actual como fallback (siempre un array)
+      return historyLogs;
     }
-    
-    console.log("Returning current history logs state as fallback");
-    return historyLogs; // Fallback to local state if Supabase query fails
   };
 
   const historyContextValue: HistoryContextType = {

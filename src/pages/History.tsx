@@ -26,7 +26,7 @@ const History = () => {
       const logs = await getHistoryLogs();
       console.log("History logs loaded:", logs);
       
-      // Ensure logs is always an array, even if null/undefined is returned
+      // Garantizar que historyLogs siempre sea un array
       setHistoryLogs(Array.isArray(logs) ? logs : []);
     } catch (error) {
       console.error("Error al cargar el historial:", error);
@@ -35,7 +35,7 @@ const History = () => {
         description: "No se pudo cargar el historial de actividades",
         variant: "destructive"
       });
-      // Ensure historyLogs is an empty array if there's an error
+      // Garantizar que historyLogs sea un array vacío en caso de error
       setHistoryLogs([]);
     } finally {
       setIsLoading(false);
@@ -54,7 +54,7 @@ const History = () => {
     });
   };
 
-  // Make sure we have a valid array for filtering
+  // Asegurar que siempre tengamos un array válido para filtrar
   const safeHistoryLogs = Array.isArray(historyLogs) ? historyLogs : [];
   const filteredLogs = filterHistoryLogs(safeHistoryLogs, filterEntity, filterAction, searchTerm);
 

@@ -36,6 +36,9 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
   isLoading, 
   filteredLogs 
 }) => {
+  // Asegúrate de que filteredLogs es siempre un array
+  const logs = Array.isArray(filteredLogs) ? filteredLogs : [];
+
   const getActionIcon = (action: string = "") => {
     switch (action.toLowerCase()) {
       case "añadir": 
@@ -118,8 +121,8 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({
                 </div>
               </TableCell>
             </TableRow>
-          ) : Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
-            filteredLogs.map((log) => (
+          ) : logs.length > 0 ? (
+            logs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell className="font-mono text-xs">
                   <div className="flex items-center gap-1">
