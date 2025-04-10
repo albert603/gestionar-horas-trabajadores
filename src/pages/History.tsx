@@ -57,6 +57,8 @@ const History = () => {
       console.log("Fetching history logs...");
       const logs = await getHistoryLogs();
       console.log("History logs loaded:", logs);
+      
+      // Ensure logs is always an array, even if null/undefined is returned
       setHistoryLogs(logs || []);
     } catch (error) {
       console.error("Error al cargar el historial:", error);
@@ -65,6 +67,8 @@ const History = () => {
         description: "No se pudo cargar el historial de actividades",
         variant: "destructive"
       });
+      // Ensure historyLogs is an empty array if there's an error
+      setHistoryLogs([]);
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +86,7 @@ const History = () => {
     });
   };
   
-  const getActionIcon = (action: string) => {
+  const getActionIcon = (action: string = "") => {
     switch (action.toLowerCase()) {
       case "añadir": 
       case "create": return <Plus className="h-4 w-4 text-green-500" />;
@@ -95,7 +99,7 @@ const History = () => {
   };
 
   const getEntityIcon = (entityType: string = "") => {
-    switch (entityType.toLowerCase()) {
+    switch (entityType?.toLowerCase()) {
       case "employee": return <Users className="h-4 w-4 text-purple-500" />;
       case "school": return <School className="h-4 w-4 text-blue-500" />;
       case "workentry": return <Clock className="h-4 w-4 text-green-500" />;
@@ -109,7 +113,7 @@ const History = () => {
   };
 
   const getEntityText = (entityType: string = "") => {
-    switch (entityType.toLowerCase()) {
+    switch (entityType?.toLowerCase()) {
       case "employee": return "Empleado";
       case "school": return "Colegio";
       case "workentry": return "Registro de horas";
@@ -119,20 +123,20 @@ const History = () => {
     }
   };
 
-  const getActionText = (action: string) => {
-    switch (action.toLowerCase()) {
+  const getActionText = (action: string = "") => {
+    switch (action?.toLowerCase()) {
       case "añadir": return "Creación";
       case "actualizar": return "Actualización";
       case "eliminar": return "Eliminación";
       case "create": return "Creación";
       case "update": return "Actualización";
       case "delete": return "Eliminación";
-      default: return action;
+      default: return action || "Acción";
     }
   };
   
-  const getActionBadgeColor = (action: string) => {
-    switch (action.toLowerCase()) {
+  const getActionBadgeColor = (action: string = "") => {
+    switch (action?.toLowerCase()) {
       case "añadir":
       case "create": return "bg-green-100 text-green-800";
       case "actualizar":
@@ -143,13 +147,15 @@ const History = () => {
     }
   };
   
-  const filteredLogs = historyLogs.filter(log => {
+  const filteredLogs = (historyLogs || []).filter(log => {
+    if (!log) return false;
+    
     const matchesEntity = filterEntity === "all" || (log.entityType && log.entityType === filterEntity);
     const matchesAction = filterAction === "all" || log.action === filterAction;
     const matchesSearch = searchTerm === "" || 
                          (log.entityName && log.entityName.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         log.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (log.description && log.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesEntity && matchesAction && matchesSearch;
   });
@@ -272,7 +278,7 @@ const History = () => {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <User className="h-3.5 w-3.5 text-gray-500" />
-                        <span>{log.performedBy}</span>
+                        <span>{log.performedBy || "Sistema"}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
@@ -283,7 +289,10 @@ const History = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
-                    No se encontraron registros que coincidan con los filtros.
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Clock className="h-10 w-10 text-gray-300 mb-2" />
+                      <p className="text-gray-500">No se encontraron registros que coincidan con los filtros.</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

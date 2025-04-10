@@ -23,6 +23,7 @@ export const HistoryProvider: React.FC<{
   useEffect(() => {
     const fetchHistoryLogs = async () => {
       try {
+        console.log("Initial fetch of history logs...");
         const { data, error } = await supabase
           .from('history_logs')
           .select('*')
@@ -35,19 +36,26 @@ export const HistoryProvider: React.FC<{
         if (data) {
           const formattedLogs: HistoryLog[] = data.map(log => ({
             id: log.id,
-            action: log.action,
-            description: log.description,
+            action: log.action || '',
+            description: log.description || '',
             timestamp: log.timestamp,
-            performedBy: log.performed_by,
-            entityType: log.entity_type,
+            performedBy: log.performed_by || 'System',
+            entityType: log.entity_type || '',
             entityName: log.entity_name,
             details: log.details
           }));
           
           setHistoryLogs(formattedLogs);
+          console.log("History logs initialized with", formattedLogs.length, "records");
+        } else {
+          // If no data, set empty array
+          setHistoryLogs([]);
+          console.log("No history logs found in initial fetch");
         }
       } catch (error) {
         console.error("Error fetching history logs:", error);
+        // Ensure we set an empty array on error
+        setHistoryLogs([]);
         toast({
           title: "Error",
           description: "No se pudieron cargar los registros del historial",
@@ -105,6 +113,7 @@ export const HistoryProvider: React.FC<{
 
   const getHistoryLogs = async (): Promise<HistoryLog[]> => {
     try {
+      console.log("Getting history logs...");
       const { data, error } = await supabase
         .from('history_logs')
         .select('*')
@@ -117,15 +126,16 @@ export const HistoryProvider: React.FC<{
       if (data) {
         const formattedLogs: HistoryLog[] = data.map(log => ({
           id: log.id,
-          action: log.action,
-          description: log.description,
+          action: log.action || '',
+          description: log.description || '',
           timestamp: log.timestamp,
-          performedBy: log.performed_by,
-          entityType: log.entity_type,
+          performedBy: log.performed_by || 'System',
+          entityType: log.entity_type || '',
           entityName: log.entity_name,
           details: log.details
         }));
         
+        console.log("Retrieved", formattedLogs.length, "history logs");
         setHistoryLogs(formattedLogs);
         return formattedLogs;
       }
@@ -138,6 +148,7 @@ export const HistoryProvider: React.FC<{
       });
     }
     
+    console.log("Returning current history logs state as fallback");
     return historyLogs; // Fallback to local state if Supabase query fails
   };
 
